@@ -4,10 +4,10 @@ import { Bubbles, Grain, shake } from "../components/Overlays";
 import { BrushChak, StaggerText } from "../components/Type";
 import { DISPLAY, SANS } from "../theme";
 
-// 0 - 75f. Black water: "노즈클립, 또 바꿨어요?" then the brush "착" slams on the beat (45f).
+// 0 - 75f. Black water: "노즈클립, 또 바꿨어요?" then the brush "착" slams (54f, on the music hit).
 export const HookScene: React.FC = () => {
   const frame = useCurrentFrame();
-  const SLAM = 45;
+  const SLAM = 54;
   return (
     <AbsoluteFill style={{ backgroundColor: "#020304", overflow: "hidden" }}>
       <AbsoluteFill style={{ translate: shake(frame, SLAM, 30, 16) }}>

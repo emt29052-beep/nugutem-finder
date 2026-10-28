@@ -39,7 +39,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Lifestyle" component={LifestyleScene} durationInFrames={90} {...scene} />
         <Composition id="Pouch" component={PouchScene} durationInFrames={120} {...scene} />
         <Composition id="RealShot" component={RealShotScene} durationInFrames={90} {...scene} />
-        <Composition id="MoreDeep" component={MoreDeepScene} durationInFrames={120} {...scene} />
+        <Composition id="MoreDeep" component={MoreDeepScene} durationInFrames={150} {...scene} />
         <Composition id="End" component={EndScene} durationInFrames={135} {...scene} />
       </Folder>
       <Composition id="ChakComic" component={ComicAd} durationInFrames={COMIC_DURATION} {...scene} />

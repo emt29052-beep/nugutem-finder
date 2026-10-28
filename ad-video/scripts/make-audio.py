@@ -104,26 +104,27 @@ def pad(length, notes, gain=0.12):
     return x * gain
 
 
-def music(groove_end=22.5, end_hit=26.5):
-    """Cinematic bed. Groove until groove_end, an underwater breakdown
-    (the MoreDeep scene) until end_hit, then the end-card boom."""
+def music(groove_end=22.5, end_hit=27.5, hook_hit=1.8):
+    """Cinematic bed. Hook riser into the brush "착" at hook_hit, groove until
+    groove_end, an underwater breakdown (the MoreDeep scene) until end_hit,
+    then the end-card boom."""
     total = end_hit + 5.0
     beat = 0.5
     n = int(total * SR)
     L = np.zeros(n)
 
-    # --- Hook (0 - 1.5s): rising tension into the "착" hit
-    rise_len = 1.5
+    # --- Hook (0 - hook_hit): rising tension into the "착" hit
+    rise_len = hook_hit
     rt = t(rise_len)
     riser = lowpass(rng.standard_normal(len(rt)), 300 + 6000 * (rt / rise_len) ** 2)
     riser *= (rt / rise_len) ** 2
     add(L, riser, 0, 0.55)
     heartbeat = kick(0.3, 90, 40, 1.2)
-    for s in (0.0, 0.32, 0.9, 1.18):
+    for s in (0.0, 0.32, 0.9, 1.18) if hook_hit <= 1.5 else (0.0, 0.38, 1.08, 1.42):
         add(L, heartbeat, s, 0.55)
 
-    # --- "착" impact at 1.5s
-    add(L, boom(), 1.5, 1.1)
+    # --- "착" impact
+    add(L, boom(), hook_hit, 1.1)
 
     # --- Dark minor pad under everything after the hook (A minor -> F -> C -> G)
     chords = [

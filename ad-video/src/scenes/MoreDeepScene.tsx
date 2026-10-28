@@ -7,7 +7,7 @@ import { SANS } from "../theme";
 
 const PILLARS = ["안전하고", "재밌고", "스트레스 없이"];
 
-// 120f: sinking into blue water — "노즈클립만으로 딥다이버가 될까요?" → learn it properly at 모어딥 프리다이빙.
+// 150f: sinking into blue water — "노즈클립만으로 딥다이버가 될까요?" → "아니요." → learn it at 모어딥 프리다이빙.
 export const MoreDeepScene: React.FC = () => {
   const frame = useCurrentFrame();
   return (
@@ -32,13 +32,13 @@ export const MoreDeepScene: React.FC = () => {
         ))}
       </div>
 
-      {/* beat 1 (0-60f): the question — a clip alone doesn't make a deep diver */}
+      {/* beat 1 (0-57f): the question — a clip alone doesn't make a deep diver */}
       <AbsoluteFill
         style={{
           justifyContent: "center",
           alignItems: "center",
           paddingBottom: 120,
-          opacity: interpolate(frame, [54, 60], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+          opacity: interpolate(frame, [52, 57], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
         }}
       >
         <StaggerText
@@ -55,13 +55,44 @@ export const MoreDeepScene: React.FC = () => {
         />
       </AbsoluteFill>
 
-      {/* beat 2 (60-120f): where to learn it properly */}
+      {/* beat 2 (57-78f): the answer */}
       <AbsoluteFill
         style={{
           justifyContent: "center",
           alignItems: "center",
           paddingBottom: 120,
-          opacity: interpolate(frame, [58, 64], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+          opacity: interpolate(frame, [56, 58, 74, 79], [0, 1, 1, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          }),
+        }}
+      >
+        <div
+          style={{
+            fontFamily: SANS,
+            fontWeight: 900,
+            fontSize: 210,
+            letterSpacing: -6,
+            color: "white",
+            textShadow: "0 14px 50px rgba(0,30,60,0.7)",
+            scale: interpolate(frame, [57, 63], [1.6, 1], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+              easing: Easing.out(Easing.back(1.8)),
+            }),
+          }}
+        >
+          아니요.
+        </div>
+      </AbsoluteFill>
+
+      {/* beat 3 (78-150f): where to learn it properly */}
+      <AbsoluteFill
+        style={{
+          justifyContent: "center",
+          alignItems: "center",
+          paddingBottom: 120,
+          opacity: interpolate(frame, [78, 84], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
         }}
       >
         <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 48, color: "#d6f1ff" }}>제대로 배우는 곳</div>
@@ -74,7 +105,7 @@ export const MoreDeepScene: React.FC = () => {
               letterSpacing: -3,
               color: "white",
               textShadow: "0 10px 40px rgba(0,40,80,0.6)",
-              translate: `0px ${interpolate(frame, [62, 76], [110, 0], {
+              translate: `0px ${interpolate(frame, [82, 96], [110, 0], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
                 easing: Easing.bezier(0.16, 1, 0.3, 1),
@@ -91,7 +122,7 @@ export const MoreDeepScene: React.FC = () => {
             fontSize: 44,
             color: "#d6f1ff",
             marginTop: 18,
-            opacity: interpolate(frame, [74, 84], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+            opacity: interpolate(frame, [94, 104], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
           }}
         >
           이퀄라이징부터 차근차근
@@ -99,7 +130,7 @@ export const MoreDeepScene: React.FC = () => {
 
         <div style={{ display: "flex", gap: 22, marginTop: 80 }}>
           {PILLARS.map((p, i) => {
-            const at = 84 + i * 6;
+            const at = 104 + i * 6;
             return (
               <div
                 key={p}

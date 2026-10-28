@@ -14,8 +14,8 @@ import { PouchScene } from "./scenes/PouchScene";
 import { RealShotScene } from "./scenes/RealShotScene";
 
 // 30fps, 120 BPM: one beat = 15 frames. Cuts only use overlays so scene starts stay on the grid:
-// Hook 0 · Hero 75 · Detail 195 · Lifestyle 375 · Pouch 465 · Real 585 · MoreDeep 675 · End 795 · total 930.
-export const AD_DURATION = 930;
+// Hook 0 · Hero 75 · Detail 195 · Lifestyle 375 · Pouch 465 · Real 585 · MoreDeep 675 · End 825 · total 960.
+export const AD_DURATION = 960;
 
 const Sfx: React.FC<{ at: number; src: string; volume?: number }> = ({ at, src, volume = 0.8 }) => (
   <Sequence from={at} name={src} layout="none">
@@ -63,7 +63,7 @@ export const ChakAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) =>
         <TransitionSeries.Overlay durationInFrames={20}>
           <LightLeakOverlay seed={21} hueShift={210} />
         </TransitionSeries.Overlay>
-        <TransitionSeries.Sequence name="MoreDeep" durationInFrames={120}>
+        <TransitionSeries.Sequence name="MoreDeep" durationInFrames={150}>
           <MoreDeepScene />
         </TransitionSeries.Sequence>
         <TransitionSeries.Sequence name="End" durationInFrames={135}>
@@ -74,11 +74,11 @@ export const ChakAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) =>
       <Audio
         src={staticFile("audio/music.wav")}
         volume={(f) =>
-          interpolate(f, [0, 6, 900, 930], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
+          interpolate(f, [0, 6, 930, 960], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
           duckMusic(f, narration)
         }
       />
-      <Sfx at={45} src="chak" volume={0.7} />
+      <Sfx at={54} src="chak" volume={0.7} />
       <Sfx at={63} src="whoosh" />
       <Sfx at={109} src="shine" volume={0.35} />
       <Sfx at={190} src="whoosh-short" />
@@ -97,7 +97,8 @@ export const ChakAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) =>
       <Sfx at={645} src="shutter" />
       <Sfx at={668} src="whoosh" volume={0.6} />
       <Sfx at={678} src="bubbles" volume={0.5} />
-      <Sfx at={795} src="chak" volume={0.7} />
+      <Sfx at={732} src="pop" volume={0.6} />
+      <Sfx at={825} src="chak" volume={0.7} />
       {narration ? <Narration cut={narration} /> : null}
     </AbsoluteFill>
   );
