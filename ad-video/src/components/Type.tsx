@@ -175,7 +175,7 @@ export const Callout: React.FC<{
       <circle
         cx={x}
         cy={y}
-        r={interpolate(frame, [at, at + 6], [0, 12], { ...clamp, easing: Easing.back(3) })}
+        r={interpolate(frame, [at, at + 6], [0, 12], { ...clamp, easing: Easing.out(Easing.back(3)) })}
         fill="white"
       />
       <line

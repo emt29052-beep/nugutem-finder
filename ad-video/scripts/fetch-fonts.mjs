@@ -15,7 +15,7 @@ const walk = (dir) =>
 
 const source = walk(join(root, "src")).map((f) => readFileSync(f, "utf8")).join("");
 const chars = [...new Set(source.match(/[가-힣]/g))].join("");
-const text = chars + "0123456789.,!?·● ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const text = chars + "0123456789.,!?·●~:)@_ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 const fonts = [
   { out: "brush.woff2", family: "East Sea Dokdo", weight: 400 },
@@ -23,6 +23,8 @@ const fonts = [
   { out: "sans-500.woff2", family: "Noto Sans KR", weight: 500 },
   { out: "oswald-300.woff2", family: "Oswald", weight: 300 },
   { out: "oswald-600.woff2", family: "Oswald", weight: 600 },
+  { out: "jua.woff2", family: "Jua", weight: 400 },
+  { out: "blackhan.woff2", family: "Black Han Sans", weight: 400 },
 ];
 
 mkdirSync(join(root, "public/fonts"), { recursive: true });

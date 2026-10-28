@@ -13,6 +13,12 @@ export const DISPLAY = "ChakDisplay";
 loadLocalFont({ family: DISPLAY, url: staticFile("fonts/oswald-300.woff2"), weight: "300" });
 loadLocalFont({ family: DISPLAY, url: staticFile("fonts/oswald-600.woff2"), weight: "600" });
 
+// Comic cut: round & cute (Jua) for speech, heavy impact (Black Han Sans) for gags.
+export const COMIC = "ChakComic";
+export const POP = "ChakPop";
+loadLocalFont({ family: COMIC, url: staticFile("fonts/jua.woff2") });
+loadLocalFont({ family: POP, url: staticFile("fonts/blackhan.woff2") });
+
 export const COLORS = {
   ink: "#050506",
   paper: "#f2f1ee",

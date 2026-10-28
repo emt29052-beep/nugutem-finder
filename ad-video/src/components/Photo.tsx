@@ -18,12 +18,12 @@ export type Camera = {
  * then clamps so no image edge ever shows. Returns the box plus where the focal
  * point actually landed (used to pin callouts onto product details).
  */
-export const frameImage = (iw: number, ih: number, cam: Camera) => {
-  const cover = Math.max(WIDTH / iw, HEIGHT / ih);
+export const frameImage = (iw: number, ih: number, cam: Camera, vw = WIDTH, vh = HEIGHT) => {
+  const cover = Math.max(vw / iw, vh / ih);
   const w = iw * cover * cam.zoom;
   const h = ih * cover * cam.zoom;
-  const left = Math.min(0, Math.max(WIDTH - w, cam.px - cam.fx * w));
-  const top = Math.min(0, Math.max(HEIGHT - h, cam.py - cam.fy * h));
+  const left = Math.min(0, Math.max(vw - w, cam.px - cam.fx * w));
+  const top = Math.min(0, Math.max(vh - h, cam.py - cam.fy * h));
   return { left, top, w, h, focusX: left + cam.fx * w, focusY: top + cam.fy * h };
 };
 
@@ -34,8 +34,11 @@ export const Photo: React.FC<{
   cam: Camera;
   effects?: EffectsProp;
   rotate?: number;
-}> = ({ src, iw, ih, cam, effects, rotate = 0 }) => {
-  const box = frameImage(iw, ih, cam);
+  /** viewport size when the photo fills a panel instead of the whole frame */
+  vw?: number;
+  vh?: number;
+}> = ({ src, iw, ih, cam, effects, rotate = 0, vw, vh }) => {
+  const box = frameImage(iw, ih, cam, vw, vh);
   return (
     <div
       style={{

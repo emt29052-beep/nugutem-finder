@@ -3,6 +3,7 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { Bubbles, Grain, shake, Vignette } from "../components/Overlays";
 import { IMAGES, Photo } from "../components/Photo";
+import { InstaGlyph } from "../components/Water";
 import { BrushChak, StaggerText } from "../components/Type";
 import { DISPLAY, SANS } from "../theme";
 
@@ -43,7 +44,7 @@ export const EndScene: React.FC = () => {
             NOSECLIP PRO
           </div>
         </AbsoluteFill>
-        <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 230 }}>
+        <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 200 }}>
           <StaggerText
             text="지금, 착."
             at={34}
@@ -53,12 +54,16 @@ export const EndScene: React.FC = () => {
           <div
             style={{
               marginTop: 34,
-              padding: "20px 54px",
+              padding: "20px 48px",
               border: "2px solid rgba(255,255,255,0.85)",
               borderRadius: 999,
-              fontFamily: SANS,
-              fontWeight: 500,
-              fontSize: 40,
+              display: "flex",
+              alignItems: "center",
+              gap: 18,
+              fontFamily: DISPLAY,
+              fontWeight: 600,
+              fontSize: 50,
+              letterSpacing: 2,
               color: "white",
               opacity: interpolate(frame, [52, 64], [0, 1], {
                 extrapolateLeft: "clamp",
@@ -67,11 +72,27 @@ export const EndScene: React.FC = () => {
               scale: interpolate(frame, [52, 64], [0.85, 1], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
-                easing: Easing.back(2),
+                easing: Easing.out(Easing.back(2)),
               }),
             }}
           >
-            프로필 링크에서 만나보세요
+            <InstaGlyph size={52} />
+            @deepflow_korea
+          </div>
+          <div
+            style={{
+              marginTop: 26,
+              fontFamily: SANS,
+              fontWeight: 500,
+              fontSize: 38,
+              color: "#cfe9ff",
+              opacity: interpolate(frame, [64, 76], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              }),
+            }}
+          >
+            with 모어딥 프리다이빙
           </div>
         </AbsoluteFill>
       </AbsoluteFill>

@@ -104,8 +104,10 @@ def pad(length, notes, gain=0.12):
     return x * gain
 
 
-def music():
-    total = 27.5
+def music(groove_end=22.5, end_hit=26.5):
+    """Cinematic bed. Groove until groove_end, an underwater breakdown
+    (the MoreDeep scene) until end_hit, then the end-card boom."""
+    total = end_hit + 5.0
     beat = 0.5
     n = int(total * SR)
     L = np.zeros(n)
@@ -136,9 +138,9 @@ def music():
         fade = np.minimum(1, np.minimum(t(4.2) / 0.4, (4.2 - t(4.2)) / 0.6))
         add(L, lowpass(p, 1400) * fade, start, 1.0)
 
-    # --- Groove from 2.5s to 22.5s
+    # --- Groove from 2.5s to groove_end
     sub_notes = {2.5: 55.0, 6.5: 43.65, 10.5: 65.41, 14.5: 49.0, 18.5: 55.0}
-    for i in range(int((22.5 - 2.5) / beat)):
+    for i in range(int((groove_end - 2.5) / beat)):
         s = 2.5 + i * beat
         add(L, kick(), s, 0.9)
         add(L, hat(), s + beat / 2, 0.22)
@@ -154,17 +156,28 @@ def music():
         bass = np.tanh(np.sin(2 * np.pi * sub_notes[root] * st) * 2) * env_exp(len(st), 0.12)
         add(L, bass, s + beat / 2, 0.5)
 
+    # --- Underwater breakdown: muffled pad + slow heartbeat + bubbles
+    bd = end_hit - groove_end
+    if bd > 0:
+        bp = pad(bd + 0.3, [110.0, 164.81, 220.0, 261.63], 0.12)
+        bfade = np.minimum(1, np.minimum(t(bd + 0.3) / 0.3, (bd + 0.3 - t(bd + 0.3)) / 0.4))
+        add(L, lowpass(bp, 700) * bfade, groove_end, 1.0)
+        for k in range(int(bd / (beat * 2))):
+            add(L, lowpass(kick(), 400), groove_end + k * beat * 2, 0.7)
+        for k in range(10):
+            add(L, sfx_bloop(), groove_end + rng.uniform(0, bd - 0.3), 0.15)
+
     # --- Pre-drop riser into the end card
     rl = 2.0
     rt = t(rl)
     riser2 = lowpass(rng.standard_normal(len(rt)), 400 + 9000 * (rt / rl) ** 3) * (rt / rl) ** 2
-    add(L, riser2, 22.5 - rl, 0.5)
+    add(L, riser2, end_hit - rl, 0.5)
 
     # --- End card impact + long ring out
-    add(L, boom(4.5), 22.5, 1.2)
+    add(L, boom(4.5), end_hit, 1.2)
     end_pad = pad(5.0, [110.0, 164.81, 220.0], 0.1)
     end_fade = np.minimum(1, (5.0 - t(5.0)) / 3.5) * np.minimum(1, t(5.0) / 0.2)
-    add(L, lowpass(end_pad, 1800) * end_fade, 22.5, 1.0)
+    add(L, lowpass(end_pad, 1800) * end_fade, end_hit, 1.0)
 
     # soft master: gentle saturation + tail fade
     L = np.tanh(L * 0.9)
@@ -213,6 +226,121 @@ def sfx_shine():
     return x * np.minimum(1, tt / 0.01)
 
 
+def pluck(freq, length=0.22, bright=0.6):
+    tt = t(length)
+    x = np.zeros(len(tt))
+    for h in range(1, 7):
+        x += np.sign(np.sin(2 * np.pi * freq * h * tt)) / h * (bright ** (h - 1))
+    return lowpass(x, 3000) * env_exp(len(tt), 0.07)
+
+
+def music_comic(total=29.0, stop_at=20.5, stop_len=0.5, end_at=26.0):
+    """Bouncy 120 BPM bed for the comic cut. Drops out for a beat at stop_at
+    (record scratch gag) and resolves into a cute outro at end_at."""
+    beat = 0.5
+    n = int(total * SR)
+    L = np.zeros(n)
+    # C - G - Am - F, one bar each, cycled
+    prog = [
+        (130.81, [261.63, 329.63, 392.0]),
+        (98.0, [246.94, 293.66, 392.0]),
+        (110.0, [261.63, 329.63, 440.0]),
+        (87.31, [261.63, 349.23, 440.0]),
+    ]
+    melody = [523.25, 659.25, 783.99, 659.25, 587.33, 659.25, 523.25, 392.0]
+    i = 0
+    s = 0.0
+    while s < end_at - 1e-6:
+        if stop_at <= s < stop_at + stop_len:
+            s += beat
+            i += 1
+            continue
+        bar = (i // 4) % 4
+        root, chord = prog[bar]
+        if i % 2 == 0:
+            add(L, kick(0.3, 140, 50, 1.3), s, 0.8)
+        else:
+            add(L, clap(), s, 0.4)
+        add(L, hat(0.05), s + beat / 2, 0.18)
+        # bouncy octave bass
+        add(L, pluck(root, 0.2, 0.4), s, 0.5)
+        add(L, pluck(root * 2, 0.15, 0.4), s + beat / 2, 0.35)
+        # chord stab on the off-beat
+        for f in chord:
+            add(L, pluck(f, 0.12, 0.5), s + beat / 2, 0.12)
+        # toy melody in 8ths from bar 3 on
+        if s >= 4.0:
+            add(L, pluck(melody[(i * 2) % 8] , 0.14, 0.7), s, 0.16)
+            add(L, pluck(melody[(i * 2 + 1) % 8], 0.14, 0.7), s + beat / 2, 0.12)
+        s += beat
+        i += 1
+    # outro: happy resolve chord + sparkle
+    for f in (261.63, 329.63, 392.0, 523.25):
+        tt = t(2.5)
+        add(L, np.sin(2 * np.pi * f * tt) * env_exp(len(tt), 0.8), end_at, 0.15)
+    add(L, sfx_shine(), end_at, 0.25)
+    L = np.tanh(L * 0.9)
+    fo = int(0.8 * SR)
+    L[-fo:] *= np.linspace(1, 0, fo)
+    R = np.roll(L, int(0.01 * SR))
+    return np.stack([L, R * 0.96], axis=1)
+
+
+def sfx_bloop():
+    tt = t(0.12)
+    f = 400 + 1400 * (tt / 0.12)
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * env_exp(len(tt), 0.03)
+
+
+def sfx_bubbles():
+    x = np.zeros(int(1.0 * SR))
+    for k in range(9):
+        add(x, sfx_bloop(), rng.uniform(0, 0.85), rng.uniform(0.4, 1.0))
+    return x
+
+
+def sfx_boing():
+    tt = t(0.6)
+    f = 180 + 120 * np.sin(2 * np.pi * 9 * tt) * env_exp(len(tt), 0.25) + 60 * tt
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * env_exp(len(tt), 0.22)
+
+
+def sfx_pop():
+    tt = t(0.1)
+    f = 900 * np.exp(-tt / 0.02) + 300
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * env_exp(len(tt), 0.02)
+
+
+def sfx_scratch():
+    tt = t(0.45)
+    rate = np.sin(2 * np.pi * 3.5 * tt)
+    f = 300 + 900 * np.abs(rate)
+    tone = np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR)) * 0.3
+    hiss = highpass(rng.standard_normal(len(tt)), 1500) * np.abs(rate) * 0.6
+    return lowpass(tone + hiss, 4000) * np.minimum(1, (0.45 - tt) / 0.1)
+
+
+def sfx_slide_down():
+    tt = t(0.8)
+    f = 1500 * np.exp(-tt / 0.35) + 200
+    vib = 1 + 0.02 * np.sin(2 * np.pi * 6 * tt)
+    return np.sin(2 * np.pi * np.cumsum(f * vib) / SR) * np.minimum(1, (0.8 - tt) / 0.15)
+
+
+def sfx_ding():
+    tt = t(1.0)
+    return (np.sin(2 * np.pi * 1318.5 * tt) + 0.5 * np.sin(2 * np.pi * 2637 * tt)) * env_exp(len(tt), 0.3)
+
+
+def sfx_glug():
+    x = np.zeros(int(1.0 * SR))
+    for k in range(5):
+        tt = t(0.16)
+        f = 160 + 260 * (tt / 0.16)
+        add(x, np.sin(2 * np.pi * np.cumsum(f) / SR) * env_exp(len(tt), 0.05), k * 0.17, 1.0)
+    return lowpass(x, 1200)
+
+
 if __name__ == "__main__":
     write(os.path.join(ROOT, "audio", "music.wav"), music())
     write(os.path.join(ROOT, "sfx", "chak.wav"), sfx_chak())
@@ -220,4 +348,15 @@ if __name__ == "__main__":
     write(os.path.join(ROOT, "sfx", "whoosh-short.wav"), sfx_whoosh(0.35))
     write(os.path.join(ROOT, "sfx", "shutter.wav"), sfx_shutter())
     write(os.path.join(ROOT, "sfx", "shine.wav"), sfx_shine())
+    write(os.path.join(ROOT, "audio", "music-comic.wav"), music_comic())
+    for name, fn in {
+        "bubbles": sfx_bubbles,
+        "boing": sfx_boing,
+        "pop": sfx_pop,
+        "scratch": sfx_scratch,
+        "slide-down": sfx_slide_down,
+        "ding": sfx_ding,
+        "glug": sfx_glug,
+    }.items():
+        write(os.path.join(ROOT, "sfx", f"{name}.wav"), fn())
     print("audio written")

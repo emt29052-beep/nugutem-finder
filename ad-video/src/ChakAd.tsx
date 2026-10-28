@@ -8,12 +8,13 @@ import { EndScene } from "./scenes/EndScene";
 import { HeroScene } from "./scenes/HeroScene";
 import { HookScene } from "./scenes/HookScene";
 import { LifestyleScene } from "./scenes/LifestyleScene";
+import { MoreDeepScene } from "./scenes/MoreDeepScene";
 import { PouchScene } from "./scenes/PouchScene";
 import { RealShotScene } from "./scenes/RealShotScene";
 
 // 30fps, 120 BPM: one beat = 15 frames. Cuts only use overlays so scene starts stay on the grid:
-// Hook 0 · Hero 75 · Detail 195 · Lifestyle 375 · Pouch 465 · Real 585 · End 675 · total 810.
-export const AD_DURATION = 810;
+// Hook 0 · Hero 75 · Detail 195 · Lifestyle 375 · Pouch 465 · Real 585 · MoreDeep 675 · End 795 · total 930.
+export const AD_DURATION = 930;
 
 const Sfx: React.FC<{ at: number; src: string; volume?: number }> = ({ at, src, volume = 0.8 }) => (
   <Sequence from={at} name={src} layout="none">
@@ -58,6 +59,12 @@ export const ChakAd: React.FC = () => {
         <TransitionSeries.Sequence name="RealShot" durationInFrames={90}>
           <RealShotScene />
         </TransitionSeries.Sequence>
+        <TransitionSeries.Overlay durationInFrames={20}>
+          <LightLeakOverlay seed={21} hueShift={210} />
+        </TransitionSeries.Overlay>
+        <TransitionSeries.Sequence name="MoreDeep" durationInFrames={120}>
+          <MoreDeepScene />
+        </TransitionSeries.Sequence>
         <TransitionSeries.Sequence name="End" durationInFrames={135}>
           <EndScene />
         </TransitionSeries.Sequence>
@@ -65,7 +72,7 @@ export const ChakAd: React.FC = () => {
 
       <Audio
         src={staticFile("audio/music.wav")}
-        volume={(f) => interpolate(f, [0, 6, 780, 810], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+        volume={(f) => interpolate(f, [0, 6, 900, 930], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
       />
       <Sfx at={45} src="chak" volume={0.7} />
       <Sfx at={63} src="whoosh" />
@@ -84,7 +91,9 @@ export const ChakAd: React.FC = () => {
       <Sfx at={609} src="shutter" />
       <Sfx at={627} src="shutter" />
       <Sfx at={645} src="shutter" />
-      <Sfx at={675} src="chak" volume={0.7} />
+      <Sfx at={668} src="whoosh" volume={0.6} />
+      <Sfx at={678} src="bubbles" volume={0.5} />
+      <Sfx at={795} src="chak" volume={0.7} />
     </AbsoluteFill>
   );
 };
