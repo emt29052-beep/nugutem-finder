@@ -25,6 +25,13 @@ export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition id="ChakAd" component={ChakAd} durationInFrames={AD_DURATION} {...scene} />
+      <Composition
+        id="ChakAdNarrated"
+        component={ChakAd}
+        durationInFrames={AD_DURATION}
+        defaultProps={{ narration: "cinematic" as const }}
+        {...scene}
+      />
       <Folder name="ChakAd-Scenes">
         <Composition id="Hook" component={HookScene} durationInFrames={75} {...scene} />
         <Composition id="Hero" component={HeroScene} durationInFrames={120} {...scene} />
@@ -36,6 +43,13 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="End" component={EndScene} durationInFrames={135} {...scene} />
       </Folder>
       <Composition id="ChakComic" component={ComicAd} durationInFrames={COMIC_DURATION} {...scene} />
+      <Composition
+        id="ChakComicNarrated"
+        component={ComicAd}
+        durationInFrames={COMIC_DURATION}
+        defaultProps={{ narration: "comic" as const }}
+        {...scene}
+      />
       <Folder name="ChakComic-Scenes">
         <Composition id="ComicHook" component={ComicHook} durationInFrames={90} {...scene} />
         <Composition id="ComicPain" component={ComicPain} durationInFrames={120} {...scene} />

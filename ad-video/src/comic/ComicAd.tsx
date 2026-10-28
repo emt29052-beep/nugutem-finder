@@ -2,6 +2,7 @@ import { Audio } from "@remotion/media";
 import { TransitionSeries } from "@remotion/transitions";
 import React from "react";
 import { AbsoluteFill, interpolate, Sequence, staticFile } from "remotion";
+import { duckMusic, Narration, NarrationCut } from "../components/Narration";
 import { FlashOverlay } from "../components/Overlays";
 import { ComicEnd } from "./ComicEnd";
 import { ComicFeatures } from "./ComicFeatures";
@@ -22,7 +23,7 @@ const Sfx: React.FC<{ at: number; src: string; volume?: number }> = ({ at, src, 
   </Sequence>
 );
 
-export const ComicAd: React.FC = () => {
+export const ComicAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "white" }}>
       <TransitionSeries>
@@ -60,7 +61,10 @@ export const ComicAd: React.FC = () => {
 
       <Audio
         src={staticFile("audio/music-comic.wav")}
-        volume={(f) => interpolate(f, [0, 3, 850, 870], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+        volume={(f) =>
+          interpolate(f, [0, 3, 850, 870], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
+          duckMusic(f, narration)
+        }
       />
       {/* Hook */}
       <Sfx at={0} src="boing" />
@@ -101,6 +105,7 @@ export const ComicAd: React.FC = () => {
       {/* End */}
       <Sfx at={780} src="boing" volume={0.6} />
       <Sfx at={808} src="pop" />
+      {narration ? <Narration cut={narration} /> : null}
     </AbsoluteFill>
   );
 };

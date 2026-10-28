@@ -2,6 +2,7 @@ import { Audio } from "@remotion/media";
 import { TransitionSeries } from "@remotion/transitions";
 import React from "react";
 import { AbsoluteFill, interpolate, Sequence, staticFile } from "remotion";
+import { duckMusic, Narration, NarrationCut } from "./components/Narration";
 import { FlashOverlay, LightLeakOverlay } from "./components/Overlays";
 import { DetailScene } from "./scenes/DetailScene";
 import { EndScene } from "./scenes/EndScene";
@@ -22,7 +23,7 @@ const Sfx: React.FC<{ at: number; src: string; volume?: number }> = ({ at, src, 
   </Sequence>
 );
 
-export const ChakAd: React.FC = () => {
+export const ChakAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
       <TransitionSeries>
@@ -72,7 +73,10 @@ export const ChakAd: React.FC = () => {
 
       <Audio
         src={staticFile("audio/music.wav")}
-        volume={(f) => interpolate(f, [0, 6, 900, 930], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+        volume={(f) =>
+          interpolate(f, [0, 6, 900, 930], [0, 0.75, 0.75, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
+          duckMusic(f, narration)
+        }
       />
       <Sfx at={45} src="chak" volume={0.7} />
       <Sfx at={63} src="whoosh" />
@@ -94,6 +98,7 @@ export const ChakAd: React.FC = () => {
       <Sfx at={668} src="whoosh" volume={0.6} />
       <Sfx at={678} src="bubbles" volume={0.5} />
       <Sfx at={795} src="chak" volume={0.7} />
+      {narration ? <Narration cut={narration} /> : null}
     </AbsoluteFill>
   );
 };

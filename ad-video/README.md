@@ -2,8 +2,11 @@
 
 세로형 1080×1920 · 30fps · 120BPM 박자에 컷을 맞춘 릴스/쇼츠용 광고 2종. CTA는 @deepflow_korea, 모어딥 프리다이빙 공동 홍보.
 
-- `ChakAd` — 시네마틱 버전 (31초)
-- `ChakComic` — 코믹 버전 (29초)
+- `ChakAd` — 시네마틱 버전 (31초) · `ChakAdNarrated` — 나레이션 포함
+- `ChakComic` — 코믹 버전 (29초) · `ChakComicNarrated` — 나레이션 포함
+
+나레이션은 Supertone의 온디바이스 TTS **Supertonic 3** (한국어, OpenRAIL-M 라이선스)로 생성합니다.
+시네마틱은 차분한 남성(M1), 코믹은 밝은 여성(F1) 목소리이며, 말하는 동안 배경음악이 자동으로 줄어듭니다(덕킹). 대본은 `narration.md`.
 
 ## 시네마틱 (`ChakAd`)
 
@@ -41,6 +44,10 @@ npm i
 npm run dev                          # Remotion Studio 미리보기
 npx remotion render ChakAd out/chak-noseclip-ad.mp4
 npx remotion render ChakComic out/chak-comic.mp4
+npx remotion render ChakAdNarrated out/chak-noseclip-ad-narrated.mp4
+npx remotion render ChakComicNarrated out/chak-comic-narrated.mp4
+python3 -m venv .venv && .venv/bin/pip install supertonic
+.venv/bin/python scripts/make-voiceover.py   # 나레이션 다시 만들기 (대본은 스크립트 안 CUTS)
 python3 scripts/make-audio.py        # 음악/효과음 다시 만들기
 node scripts/fetch-fonts.mjs         # 한글 문구를 바꾼 뒤 폰트 서브셋 다시 받기
 ```
