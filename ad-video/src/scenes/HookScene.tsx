@@ -4,7 +4,7 @@ import { Bubbles, Grain, shake } from "../components/Overlays";
 import { BrushChak, StaggerText } from "../components/Type";
 import { DISPLAY, SANS } from "../theme";
 
-// 0 - 75f. Black water: "노즈클립, 또 바꾸셨나요?" then the brush "착" slams on the beat (45f).
+// 0 - 75f. Black water: "노즈클립, 또 바꿨어요?" then the brush "착" slams on the beat (45f).
 export const HookScene: React.FC = () => {
   const frame = useCurrentFrame();
   const SLAM = 45;
@@ -43,7 +43,7 @@ export const HookScene: React.FC = () => {
             style={{ fontFamily: SANS, fontWeight: 900, fontSize: 96, color: "white", letterSpacing: -2 }}
           />
           <StaggerText
-            text="또 바꾸셨나요?"
+            text="또 바꿨어요?"
             at={12}
             step={2}
             style={{ fontFamily: SANS, fontWeight: 900, fontSize: 96, color: "white", letterSpacing: -2 }}

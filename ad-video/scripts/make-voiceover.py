@@ -1,6 +1,6 @@
 """Generates the Korean narration with Supertonic (on-device TTS, OpenRAIL-M).
 
-  python3 -m venv .venv && .venv/bin/pip install supertonic
+  python3 -m venv .venv && .venv/bin/pip install supertonic faster-whisper
   .venv/bin/python scripts/make-voiceover.py [cinematic|comic]
 
 Each line is synthesized separately, sped up only if it would overrun its
@@ -8,6 +8,7 @@ scene window, and written to public/voiceover/<cut>/NN.wav plus a
 src/voiceover/<cut>.json timeline that the Remotion compositions read.
 """
 
+import difflib
 import json
 import os
 import sys
@@ -24,9 +25,9 @@ CUTS = {
         # M4: brighter male voice with the widest natural pitch range of the M set
         "voice": "M4",
         "speed": 1.15,
-        "max_speed": 1.4,
+        "max_speed": 1.25,
         "lines": [
-            (0.05, 1.5, "노즈클립, 또 바꾸셨나요?"),
+            (0.05, 1.5, "노즈클립, 또 바꿨어요?"),
             (2.6, 6.4, "이번엔 다릅니다. 이름처럼, 착!"),
             (6.6, 8.5, "패드가 움직여서, 코 모양 따라 착!"),
             (8.6, 10.5, "톱니로 폭까지 딱 맞게."),
@@ -34,9 +35,9 @@ CUTS = {
             (12.7, 15.3, "다른 노즈클립이 안 맞았다면, 착!"),
             (15.7, 19.3, "전용 파우치까지, 깔끔하게!"),
             (19.7, 22.4, "받아보면, 진짜 이 느낌이에요!"),
-            (22.6, 24.7, "노즈클립만으로, 딥다이버가 될까요?"),
-            (24.75, 26.45, "제대로 배우는 곳, 모어딥 프리다이빙!"),
-            (27.2, 30.9, "착 노즈클립 프로! 유목 생활 끝. 딥플로우 코리아!"),
+            (22.6, 24.4, "노즈클립만으로 딥다이버?"),
+            (24.45, 26.4, "배우는 곳, 모어딥 프리다이빙!"),
+            (27.2, 30.6, "착 노즈클립 프로! 딥플로우 코리아!"),
         ],
     },
     "comic": {
@@ -54,9 +55,9 @@ CUTS = {
             (12.05, 14.0, "폭은 딸깍딸깍 조절!"),
             (14.05, 16.0, "목에 걸면, 바다에 기부 금지!"),
             (16.05, 17.6, "파우치는 덤인데요."),
-            (17.65, 18.45, "덤이 더 예쁨!"),
-            (18.5, 20.55, "노즈클립만 있으면, 나도 딥다이버?"),
-            (20.58, 21.48, "아니요!"),
+            (17.65, 18.55, "덤이 더 예뻐요!"),
+            (18.6, 20.55, "노즈클립만 있으면, 나도 딥다이버?"),
+            (20.58, 21.48, "아뇨!"),
             (21.5, 23.0, "배워야 됩니다!"),
             (23.05, 26.0, "그래서 모어딥 프리다이빙! 이퀄부터 차근차근!"),
             (26.1, 28.8, "유목 생활 끝! 착! 딥플로우 코리아!"),
@@ -92,6 +93,43 @@ def tail_level(wav, sr):
     return float(np.max(db[max(0, last - 2) : last + 1]))
 
 
+_asr = None
+
+
+def heard(clip, sr):
+    """Transcribe a candidate with Whisper (small) so we can reject takes where
+    the TTS swallowed or garbled words. Returns None if faster-whisper is missing."""
+    global _asr
+    if _asr is None:
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError:
+            _asr = False
+            return None
+        _asr = WhisperModel("small", device="cpu", compute_type="int8")
+    if _asr is False:
+        return None
+    n = int(len(clip) * 16000 / sr)
+    x16 = np.interp(np.linspace(0, len(clip) - 1, n), np.arange(len(clip)), clip).astype(np.float32)
+    segs, _ = _asr.transcribe(x16, language="ko", beam_size=5)
+    return "".join(s.text for s in segs)
+
+
+def hangul(s):
+    return "".join(ch for ch in s if "\uac00" <= ch <= "\ud7a3")
+
+
+def intelligibility(text, transcript):
+    """(overall similarity, ending similarity) between script and what Whisper heard.
+    The ending check is what catches a chopped last word ("모어딥 프리다이빙" -> "무엇입")."""
+    if transcript is None:
+        return 1.0, 1.0
+    a, b = hangul(text), hangul(transcript)
+    whole = difflib.SequenceMatcher(None, a, b).ratio()
+    end = difflib.SequenceMatcher(None, a[-3:], b[-4:]).ratio() if b else 0.0
+    return whole, end
+
+
 def master(x, drive=2.4):
     """Peak-normalize, then soft-compress so the voice sits on top of the music."""
     x = x / (np.max(np.abs(x)) or 1.0)
@@ -111,9 +149,10 @@ def main():
         for i, (start, end, text) in enumerate(cfg["lines"]):
             path = os.path.join(out_dir, f"{i:02d}.wav")
             window = end - start
-            # Supertonic is stochastic and now and then chops the final syllable.
-            # Generate candidates (plain / trailing pause / slightly faster) and keep
-            # the one whose ending decays most naturally while still fitting the window.
+            # Supertonic is stochastic and now and then chops the final syllable or
+            # swallows a word. Generate candidates (plain / trailing pause / slightly
+            # faster) and keep one that fits the window, ends naturally, and that
+            # Whisper transcribes back to the script, ending included.
             syllables = sum(1 for ch in text if "\uac00" <= ch <= "\ud7a3")
             best = None
             for attempt in range(40):
@@ -127,16 +166,27 @@ def main():
                 # a dropped word shows up as an impossible syllable rate
                 complete = syllables / max(d - 0.16, 0.1) <= 11.0
                 score = (complete, fits, tail < -26, -tail)
+                if complete and fits:
+                    # only worth transcribing takes that already pass the cheap checks
+                    whole, end_sim = intelligibility(text, heard(clip, tts.sample_rate))
+                    clear = whole >= 0.75 and end_sim >= 0.5
+                    score = (complete and clear, fits, tail < -26, round(whole, 2), -tail)
+                else:
+                    whole, end_sim, clear = 0.0, 0.0, False
+                    score = (False, fits, tail < -26, 0.0, -tail)
                 if best is None or score > best[0]:
-                    best = (score, clip, d, tail, speed)
-                if complete and fits and tail < -32:
+                    best = (score, clip, d, tail, speed, whole)
+                if clear and tail < -30:
                     break
-            (complete, *_), clip, d, tail, speed = best
+            (complete, *_), clip, d, tail, speed, whole = best
             tts.save_audio(master(clip)[None, :], path)
             timeline.append({"file": f"voiceover/{cut}/{i:02d}.wav", "start": start, "duration": round(d, 3), "text": text})
             flag = ("" if d <= window else "  <-- OVERRUN") + ("" if tail < -26 else "  <-- ABRUPT END")
-            flag += "" if complete else "  <-- MISSING WORDS?"
-            print(f"{cut} {i:02d} {start:5.2f}s +{d:.2f}s (window {window:.2f}s, speed {speed:.2f}, tail {tail:.0f}dB) {text}{flag}")
+            flag += "" if complete else "  <-- UNCLEAR / MISSING WORDS"
+            print(
+                f"{cut} {i:02d} {start:5.2f}s +{d:.2f}s (window {window:.2f}s, speed {speed:.2f}, "
+                f"tail {tail:.0f}dB, heard {whole:.0%}) {text}{flag}"
+            )
         os.makedirs(TIMELINES, exist_ok=True)
         with open(os.path.join(TIMELINES, f"{cut}.json"), "w") as f:
             json.dump(timeline, f, ensure_ascii=False, indent=2)

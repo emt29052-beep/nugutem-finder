@@ -2,67 +2,67 @@
   {
     "file": "voiceover/cinematic/00.wav",
     "start": 0.05,
-    "duration": 1.121,
-    "text": "노즈클립, 또 바꾸셨나요?"
+    "duration": 1.449,
+    "text": "노즈클립, 또 바꿨어요?"
   },
   {
     "file": "voiceover/cinematic/01.wav",
     "start": 2.6,
-    "duration": 2.123,
+    "duration": 2.153,
     "text": "이번엔 다릅니다. 이름처럼, 착!"
   },
   {
     "file": "voiceover/cinematic/02.wav",
     "start": 6.6,
-    "duration": 1.787,
+    "duration": 1.869,
     "text": "패드가 움직여서, 코 모양 따라 착!"
   },
   {
     "file": "voiceover/cinematic/03.wav",
     "start": 8.6,
-    "duration": 1.591,
+    "duration": 1.437,
     "text": "톱니로 폭까지 딱 맞게."
   },
   {
     "file": "voiceover/cinematic/04.wav",
     "start": 10.6,
-    "duration": 1.538,
+    "duration": 1.864,
     "text": "스트랩으로 분실 걱정 없이."
   },
   {
     "file": "voiceover/cinematic/05.wav",
     "start": 12.7,
-    "duration": 2.043,
+    "duration": 2.067,
     "text": "다른 노즈클립이 안 맞았다면, 착!"
   },
   {
     "file": "voiceover/cinematic/06.wav",
     "start": 15.7,
-    "duration": 1.706,
+    "duration": 1.632,
     "text": "전용 파우치까지, 깔끔하게!"
   },
   {
     "file": "voiceover/cinematic/07.wav",
     "start": 19.7,
-    "duration": 1.869,
+    "duration": 2.079,
     "text": "받아보면, 진짜 이 느낌이에요!"
   },
   {
     "file": "voiceover/cinematic/08.wav",
     "start": 22.6,
-    "duration": 1.991,
-    "text": "노즈클립만으로, 딥다이버가 될까요?"
+    "duration": 1.711,
+    "text": "노즈클립만으로 딥다이버?"
   },
   {
     "file": "voiceover/cinematic/09.wav",
-    "start": 24.75,
-    "duration": 1.616,
-    "text": "제대로 배우는 곳, 모어딥 프리다이빙!"
+    "start": 24.45,
+    "duration": 1.947,
+    "text": "배우는 곳, 모어딥 프리다이빙!"
   },
   {
     "file": "voiceover/cinematic/10.wav",
     "start": 27.2,
-    "duration": 3.681,
-    "text": "착 노즈클립 프로! 유목 생활 끝. 딥플로우 코리아!"
+    "duration": 2.926,
+    "text": "착 노즈클립 프로! 딥플로우 코리아!"
   }
 ]

@@ -12,7 +12,7 @@
 
 | 구간 | 프레임 | 내용 |
 | --- | --- | --- |
-| Hook | 0–75 | 어두운 물속 + 기포 → "노즈클립, 또 바꾸셨나요?" → 붓글씨 **착** 슬램 (화면 흔들림, RGB 분리) |
+| Hook | 0–75 | 어두운 물속 + 기포 → "노즈클립, 또 바꿨어요?" → 붓글씨 **착** 슬램 (화면 흔들림, RGB 분리) |
 | Hero | 75–195 | 스포트라이트 컷 크레인 다운, shine 스윕, NOSECLIP PRO + "이름처럼, 착." |
 | Detail | 195–375 | 매크로 3컷 (줌 블러 펀치인 + 콜아웃): 움직이는 패드 / 톱니 슬라이드 / 스토퍼 스트랩 |
 | Lifestyle | 375–465 | 어떤 코든, / 착. |
@@ -46,7 +46,7 @@ npx remotion render ChakAd out/chak-noseclip-ad.mp4
 npx remotion render ChakComic out/chak-comic.mp4
 npx remotion render ChakAdNarrated out/chak-noseclip-ad-narrated.mp4
 npx remotion render ChakComicNarrated out/chak-comic-narrated.mp4
-python3 -m venv .venv && .venv/bin/pip install supertonic
+python3 -m venv .venv && .venv/bin/pip install supertonic faster-whisper
 .venv/bin/python scripts/make-voiceover.py   # 나레이션 다시 만들기 (대본은 스크립트 안 CUTS)
 python3 scripts/make-audio.py        # 음악/효과음 다시 만들기
 node scripts/fetch-fonts.mjs         # 한글 문구를 바꾼 뒤 폰트 서브셋 다시 받기
