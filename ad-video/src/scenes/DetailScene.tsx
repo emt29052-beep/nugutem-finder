@@ -69,26 +69,26 @@ export const DetailScene: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
       <Series>
+        <Series.Sequence name="PivotPad" durationInFrames={60}>
+          <DetailShot
+            img={IMAGES.macro3}
+            from={{ fx: 0.82, fy: 0.64, px: 620, py: 640, zoom: 2.6 }}
+            to={{ fx: 0.82, fy: 0.64, px: 600, py: 700, zoom: 2.0 }}
+            label={{ x: 90, y: 1180 }}
+            kicker="01 · PIVOT PAD"
+            title="움직이는 패드"
+            sub="코 모양 따라 각도가 착"
+          />
+        </Series.Sequence>
         <Series.Sequence name="Slider" durationInFrames={60}>
           <DetailShot
             img={IMAGES.macro1}
             from={{ fx: 0.45, fy: 0.5, px: 540, py: 700, zoom: 2.3 }}
             to={{ fx: 0.45, fy: 0.5, px: 560, py: 700, zoom: 1.75 }}
             label={{ x: 90, y: 1180 }}
-            kicker="01 · SLIDE ADJUST"
+            kicker="02 · SLIDE ADJUST"
             title="톱니 슬라이드"
-            sub="내 코에 딱 맞게 미세 조절"
-          />
-        </Series.Sequence>
-        <Series.Sequence name="Pads" durationInFrames={60}>
-          <DetailShot
-            img={IMAGES.macro3}
-            from={{ fx: 0.82, fy: 0.64, px: 620, py: 640, zoom: 2.6 }}
-            to={{ fx: 0.82, fy: 0.64, px: 600, py: 700, zoom: 2.0 }}
-            label={{ x: 90, y: 1180 }}
-            kicker="02 · SOFT PAD"
-            title="소프트 패드"
-            sub="오래 껴도 편안한 밀착감"
+            sub="폭까지 딸깍, 내 코에 맞게"
           />
         </Series.Sequence>
         <Series.Sequence name="Strap" durationInFrames={60}>

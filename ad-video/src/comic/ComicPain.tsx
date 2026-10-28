@@ -51,7 +51,7 @@ const Aside: React.FC<{ text: string; at: number; color?: string }> = ({ text, a
   );
 };
 
-/** Trait 1 — free fall, but one hand is stuck pinching the nose (bye bye streamline). */
+/** Trait 1 — a drawer full of nose clips that never fit. */
 const Trait1: React.FC = () => {
   const frame = useCurrentFrame();
   return (
@@ -61,49 +61,32 @@ const Trait1: React.FC = () => {
       <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 60 }}>
         <MemeCaption words={["특징", "1"]} at={1} bg="#ffe600" fontSize={90} />
         <div>
-          <BigLine text="프리폴 중에도" at={6} />
-          <BigLine text="한 손은 코에" at={12} />
+          <BigLine text="노즈클립만" at={6} />
+          <BigLine text="벌써 5개째" at={12} />
         </div>
-        <Aside text="유선형? 그게 뭐죠" at={30} />
+        <Aside text="(전부 서랍 속에 잠들어 있음)" at={30} />
       </AbsoluteFill>
-      <Burst x={820} y={1500} size={360} text="꽉!" at={20} rotate={12} />
+      <Burst x={800} y={1500} size={420} text="또 샀어?!" at={20} rotate={12} fontSize={84} />
     </AbsoluteFill>
   );
 };
 
-/** A free-immersion line hanging through the frame. */
-const Rope: React.FC = () => (
-  <div
-    style={{
-      position: "absolute",
-      left: 36,
-      top: -40,
-      bottom: -40,
-      width: 22,
-      borderRadius: 11,
-      background: "repeating-linear-gradient(160deg, #f4f4f4 0px, #f4f4f4 10px, #c9c9c9 10px, #c9c9c9 20px)",
-      boxShadow: "6px 0 0 rgba(0,0,0,0.35)",
-    }}
-  />
-);
-
-/** Trait 2 — free immersion: both hands belong on the rope, one is on the nose. */
+/** Trait 2 — too loose it slips, too tight it hurts. */
 const Trait2: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ translate: shake(frame, 20, 22, 20) }}>
       <WaterBackground descend={0.6} />
-      <Rope />
-      <Bubbles count={16} seed="fim" opacity={0.6} />
+      <Bubbles count={16} seed="nomad" opacity={0.6} />
       <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 60 }}>
         <MemeCaption words={["특징", "2"]} at={1} bg="#ffe600" fontSize={90} />
         <div>
-          <BigLine text="FIM 할 때" at={6} color="white" />
-          <BigLine text="로프 잡을 손 실종" at={20} color="#7fd3ff" wobble size={100} />
+          <BigLine text="헐렁하면 스르륵" at={6} color="white" size={110} />
+          <BigLine text="꽉 끼면 아야" at={20} color="#7fd3ff" wobble />
         </div>
-        <Aside text="(한 손으로 영차영차)" at={32} color="#d6f1ff" />
+        <Aside text="(내 코만 이상한가…)" at={32} color="#d6f1ff" />
       </AbsoluteFill>
-      <Burst x={860} y={1560} size={340} text="어?!" at={22} rotate={-12} fill="#ffffff" />
+      <Burst x={860} y={1560} size={340} text="아야!" at={22} rotate={-12} fill="#ffffff" />
       <AbsoluteFill
         style={{
           backgroundColor: "#7fd3ff",
@@ -118,7 +101,7 @@ const Trait2: React.FC = () => {
   );
 };
 
-// 120f: two deep-diver "traits" — equalizing by hand ruins free fall and FIM.
+// 120f: two nose-clip-nomad "traits" — a drawer of clips, and none of them fit.
 export const ComicPain: React.FC = () => (
   <AbsoluteFill style={{ backgroundColor: "#7fd3ff", overflow: "hidden" }}>
     <Sequence name="Trait1" durationInFrames={60} layout="absolute-fill">

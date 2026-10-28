@@ -85,10 +85,10 @@ export const ComicAd: React.FC<{ narration?: NarrationCut }> = ({ narration }) =
       <Sfx at={243} src="boing" volume={0.6} />
       {/* Features */}
       <Sfx at={300} src="whoosh-short" volume={0.6} />
-      <Sfx at={310} src="chak" volume={0.6} />
-      <Sfx at={316} src="chak" volume={0.6} />
+      <Sfx at={310} src="pop" />
       <Sfx at={360} src="whoosh-short" volume={0.6} />
-      <Sfx at={370} src="pop" />
+      <Sfx at={370} src="chak" volume={0.6} />
+      <Sfx at={376} src="chak" volume={0.6} />
       <Sfx at={420} src="whoosh-short" volume={0.6} />
       <Sfx at={434} src="slide-down" volume={0.5} />
       {/* Pouch */}

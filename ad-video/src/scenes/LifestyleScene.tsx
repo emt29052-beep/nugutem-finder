@@ -46,7 +46,7 @@ const Word: React.FC<{ ko: string; en: string; dark?: boolean }> = ({ ko, en, da
   );
 };
 
-// 90f: two moods. Sunlit concrete (light) -> backlit silhouette (dark).
+// 90f: "어떤 코든," (sunlit concrete) -> "착." (backlit silhouette).
 export const LifestyleScene: React.FC = () => {
   const frame = useCurrentFrame();
   return (
@@ -63,7 +63,7 @@ export const LifestyleScene: React.FC = () => {
           }}
           effects={[contrast({ amount: 1.08 })]}
         />
-        <Word ko="가볍게." en="LIGHT AS AIR" dark />
+        <Word ko="어떤 코든," en="ANY NOSE" dark />
       </Sequence>
       <Sequence name="Strong" from={45} durationInFrames={45} layout="absolute-fill">
         <Photo
@@ -78,7 +78,7 @@ export const LifestyleScene: React.FC = () => {
           effects={[contrast({ amount: 1.5 })]}
         />
         <Vignette strength={0.5} />
-        <Word ko="단단하게." en="BUILT TO GRIP" dark />
+        <Word ko="착." en="PERFECT FIT" dark />
       </Sequence>
       <Grain opacity={0.1} />
     </AbsoluteFill>

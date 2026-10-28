@@ -25,7 +25,7 @@ export const ComicEnd: React.FC = () => {
         </Panel>
         <GooglyEyes a={eyeA} b={eyeB} size={110} bumps={[20]} appearAt={4} winkAt={30} />
       </div>
-      <SpeechBubble x={170} y={1130} width={740} text="착! 하고 와요" at={12} tailX={eyeB.x} tailY={eyeB.y + 120} fontSize={84} />
+      <SpeechBubble x={170} y={1130} width={740} text="유목 생활 끝, 착!" at={12} tailX={eyeB.x} tailY={eyeB.y + 120} fontSize={84} />
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 180 }}>
         <div
           style={{

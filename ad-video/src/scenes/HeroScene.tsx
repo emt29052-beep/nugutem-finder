@@ -93,7 +93,7 @@ export const HeroScene: React.FC = () => {
           }}
         />
         <StaggerText
-          text="한 번에, 정확하게."
+          text="이름처럼, 착."
           at={44}
           step={2}
           style={{ fontFamily: SANS, fontWeight: 900, fontSize: 70, color: "white", letterSpacing: -1 }}

@@ -3,7 +3,7 @@ import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { frameImage, IMAGES, Photo } from "../components/Photo";
 import { GooglyEyes, MemeCaption, SpeechBubble } from "./Comic";
 
-// 90f: the clip gets googly eyes and calls out deep divers who still equalize by hand. Moves from frame 0 (zoom punch + wobble).
+// 90f: the clip gets googly eyes and calls out nose clip nomads. Moves from frame 0 (zoom punch + wobble).
 export const ComicHook: React.FC = () => {
   const frame = useCurrentFrame();
   const img = IMAGES.macro1;
@@ -34,13 +34,13 @@ export const ComicHook: React.FC = () => {
         <GooglyEyes a={eyeA} b={eyeB} size={130} bumps={[38, 66]} appearAt={2} />
       </AbsoluteFill>
       <div style={{ position: "absolute", top: 170, left: 90, right: 90, display: "flex", justifyContent: "center" }}>
-        <MemeCaption words={["딥다이버", "특징"]} at={3} step={5} fontSize={104} />
+        <MemeCaption words={["노즈클립", "유목민", "특징"]} at={3} step={5} fontSize={104} />
       </div>
       <SpeechBubble
         x={170}
         y={1500}
         width={740}
-        text="아직도 손으로 코 잡고 내려가?"
+        text="너 또 새 노즈클립 샀지?"
         at={38}
         tailX={(eyeA.x + eyeB.x) / 2}
         tailY={Math.max(eyeA.y, eyeB.y) + 110}

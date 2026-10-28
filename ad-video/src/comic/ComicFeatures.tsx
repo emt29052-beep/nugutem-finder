@@ -57,6 +57,17 @@ const Feature: React.FC<{
 export const ComicFeatures: React.FC = () => (
   <AbsoluteFill>
     <Series>
+      <Series.Sequence name="PivotPad" durationInFrames={60}>
+        <Feature
+          img={IMAGES.macro3}
+          cam={{ fx: 0.82, fy: 0.64, px: 500, py: 480, zoom: 1.9 }}
+          bg="#ff9ec4"
+          tilt={2}
+          sticker="까딱"
+          title="움직이는 패드"
+          sub={"코 모양 따라 까딱\n그래서 착 붙음"}
+        />
+      </Series.Sequence>
       <Series.Sequence name="Slider" durationInFrames={60}>
         <Feature
           img={IMAGES.macro1}
@@ -65,18 +76,7 @@ export const ComicFeatures: React.FC = () => (
           tilt={-2}
           sticker="딸깍"
           title="톱니 슬라이드"
-          sub="내 코에 맞게 딸깍딸깍 고정"
-        />
-      </Series.Sequence>
-      <Series.Sequence name="Pads" durationInFrames={60}>
-        <Feature
-          img={IMAGES.macro3}
-          cam={{ fx: 0.82, fy: 0.64, px: 500, py: 480, zoom: 1.9 }}
-          bg="#ff9ec4"
-          tilt={2}
-          sticker="말랑"
-          title="소프트 패드"
-          sub="꽉 잡아도 아프지 않게, 말랑"
+          sub="폭은 딸깍딸깍 조절"
         />
       </Series.Sequence>
       <Series.Sequence name="Strap" durationInFrames={60}>

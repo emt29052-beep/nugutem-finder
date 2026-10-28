@@ -71,7 +71,7 @@ export const ComicReveal: React.FC = () => {
             scale: popIn(frame, SLAM + 24, 8),
           }}
         >
-          손 없이 이퀄, 두 손은 자유
+          패드가 움직여서 어떤 코든 착
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
