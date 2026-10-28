@@ -2,21 +2,22 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, Sequence, useCurrentFrame } from "remotion";
 import { Bubbles, shake } from "../components/Overlays";
 import { WaterBackground } from "../components/Water";
-import { POP } from "../theme";
+import { COMIC, POP } from "../theme";
 import { Burst, Halftone, MemeCaption, popIn, SpeedLines } from "./Comic";
 
-const BigLine: React.FC<{ text: string; at: number; color?: string; wobble?: boolean }> = ({
+const BigLine: React.FC<{ text: string; at: number; color?: string; wobble?: boolean; size?: number }> = ({
   text,
   at,
   color = "#111",
   wobble,
+  size = 132,
 }) => {
   const frame = useCurrentFrame();
   return (
     <div
       style={{
         fontFamily: POP,
-        fontSize: 132,
+        fontSize: size,
         lineHeight: 1.15,
         color,
         textAlign: "center",
@@ -41,51 +42,68 @@ const BigLine: React.FC<{ text: string; at: number; color?: string; wobble?: boo
   );
 };
 
+const Aside: React.FC<{ text: string; at: number; color?: string }> = ({ text, at, color = "#111" }) => {
+  const frame = useCurrentFrame();
+  return (
+    <div style={{ fontFamily: COMIC, fontSize: 64, color, scale: popIn(frame, at, 8), rotate: "-3deg" }}>
+      {text}
+    </div>
+  );
+};
+
+/** Trait 1 — free fall, but one hand is stuck pinching the nose (bye bye streamline). */
 const Trait1: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill>
       <Halftone bg="#7fd3ff" dot="rgba(0,40,90,0.18)" />
       <SpeedLines opacity={interpolate(frame, [18, 22], [0, 0.35], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} />
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 70 }}>
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 60 }}>
         <MemeCaption words={["특징", "1"]} at={1} bg="#ffe600" fontSize={90} />
         <div>
-          <BigLine text="잠수할 때" at={6} />
-          <BigLine text="한 손은 항상 코" at={12} />
+          <BigLine text="프리폴 중에도" at={6} />
+          <BigLine text="한 손은 코에" at={12} />
         </div>
+        <Aside text="유선형? 그게 뭐죠" at={30} />
       </AbsoluteFill>
-      <Burst x={790} y={1430} size={380} text="꽉!" at={20} rotate={12} />
+      <Burst x={820} y={1500} size={360} text="꽉!" at={20} rotate={12} />
     </AbsoluteFill>
   );
 };
 
+/** A free-immersion line hanging through the frame. */
+const Rope: React.FC = () => (
+  <div
+    style={{
+      position: "absolute",
+      left: 36,
+      top: -40,
+      bottom: -40,
+      width: 22,
+      borderRadius: 11,
+      background: "repeating-linear-gradient(160deg, #f4f4f4 0px, #f4f4f4 10px, #c9c9c9 10px, #c9c9c9 20px)",
+      boxShadow: "6px 0 0 rgba(0,0,0,0.35)",
+    }}
+  />
+);
+
+/** Trait 2 — free immersion: both hands belong on the rope, one is on the nose. */
 const Trait2: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ translate: shake(frame, 20, 22, 20) }}>
       <WaterBackground descend={0.6} />
-      <Bubbles
-        count={frame < 20 ? 10 : 60}
-        seed="glug"
-        opacity={0.8}
-      />
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 70 }}>
+      <Rope />
+      <Bubbles count={16} seed="fim" opacity={0.6} />
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", gap: 60 }}>
         <MemeCaption words={["특징", "2"]} at={1} bg="#ffe600" fontSize={90} />
         <div>
-          <BigLine text="손 놓는 순간" at={6} color="white" />
-          <BigLine text="코로 물 콸콸" at={20} color="#7fd3ff" wobble />
+          <BigLine text="FIM 할 때" at={6} color="white" />
+          <BigLine text="로프 잡을 손 실종" at={20} color="#7fd3ff" wobble size={100} />
         </div>
+        <Aside text="(한 손으로 영차영차)" at={32} color="#d6f1ff" />
       </AbsoluteFill>
-      <Burst
-        x={300}
-        y={1500}
-        size={420}
-        text="꼬르륵…"
-        at={26}
-        rotate={-14}
-        fill="#ffffff"
-        fontSize={92}
-      />
+      <Burst x={860} y={1560} size={340} text="어?!" at={22} rotate={-12} fill="#ffffff" />
       <AbsoluteFill
         style={{
           backgroundColor: "#7fd3ff",
@@ -100,7 +118,7 @@ const Trait2: React.FC = () => {
   );
 };
 
-// 120f: two "traits" of people who get water up their nose.
+// 120f: two deep-diver "traits" — equalizing by hand ruins free fall and FIM.
 export const ComicPain: React.FC = () => (
   <AbsoluteFill style={{ backgroundColor: "#7fd3ff", overflow: "hidden" }}>
     <Sequence name="Trait1" durationInFrames={60} layout="absolute-fill">

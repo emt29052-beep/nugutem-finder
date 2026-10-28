@@ -72,8 +72,8 @@ export const ComicAd: React.FC = () => {
       <Sfx at={91} src="pop" />
       <Sfx at={110} src="chak" volume={0.7} />
       <Sfx at={151} src="pop" />
-      <Sfx at={170} src="glug" volume={0.9} />
-      <Sfx at={176} src="bubbles" volume={0.5} />
+      <Sfx at={170} src="slide-down" volume={0.6} />
+      <Sfx at={172} src="boing" volume={0.5} />
       {/* Reveal */}
       <Sfx at={212} src="pop" volume={0.5} />
       <Sfx at={234} src="whoosh-short" />

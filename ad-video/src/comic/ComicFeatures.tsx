@@ -42,6 +42,7 @@ const Feature: React.FC<{
           fontFamily: COMIC,
           fontSize: 66,
           lineHeight: 1.25,
+          whiteSpace: "pre-line",
           color: "#111",
           scale: popIn(frame, 14, 8),
         }}
@@ -64,7 +65,7 @@ export const ComicFeatures: React.FC = () => (
           tilt={-2}
           sticker="딸깍"
           title="톱니 슬라이드"
-          sub="코 크기? 딸깍딸깍 맞추면 끝"
+          sub="내 코에 맞게 딸깍딸깍 고정"
         />
       </Series.Sequence>
       <Series.Sequence name="Pads" durationInFrames={60}>
@@ -75,7 +76,7 @@ export const ComicFeatures: React.FC = () => (
           tilt={2}
           sticker="말랑"
           title="소프트 패드"
-          sub="코 꼬집는 아픔 말고, 말랑하게"
+          sub="꽉 잡아도 아프지 않게, 말랑"
         />
       </Series.Sequence>
       <Series.Sequence name="Strap" durationInFrames={60}>
@@ -86,7 +87,7 @@ export const ComicFeatures: React.FC = () => (
           tilt={-2}
           sticker="휴~"
           title="넥 스트랩"
-          sub="목에 걸면 바다에 기부할 일 없음"
+          sub={"수면에서 빼도 목에 착\n바다에 기부 금지"}
         />
       </Series.Sequence>
     </Series>

@@ -56,7 +56,7 @@ export const ComicMoreDeep: React.FC = () => {
           ))}
         </div>
         <div style={{ fontFamily: COMIC, fontSize: 54, color: "white", marginTop: 70, scale: popIn(frame, 58, 8) }}>
-          노즈클립 쓰는 법부터 차근차근
+          이퀄라이징부터 노즈클립까지 차근차근
         </div>
       </AbsoluteFill>
     </AbsoluteFill>

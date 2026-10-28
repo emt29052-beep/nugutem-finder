@@ -3,7 +3,7 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { shake } from "../components/Overlays";
 import { IMAGES, Photo } from "../components/Photo";
-import { POP } from "../theme";
+import { COMIC, POP } from "../theme";
 import { Burst, Halftone, MemeCaption, Panel, popIn, SpeedLines } from "./Comic";
 
 // 90f: "그래서 준비했습니다" → the product panel slams in with a giant "착!".
@@ -48,7 +48,7 @@ export const ComicReveal: React.FC = () => {
             position: "absolute",
             left: 0,
             right: 0,
-            top: 1500,
+            top: 1470,
             textAlign: "center",
             fontFamily: POP,
             fontSize: 110,
@@ -57,6 +57,21 @@ export const ComicReveal: React.FC = () => {
           }}
         >
           착 노즈클립 PRO
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 1650,
+            textAlign: "center",
+            fontFamily: COMIC,
+            fontSize: 70,
+            color: "#111",
+            scale: popIn(frame, SLAM + 24, 8),
+          }}
+        >
+          손 없이 이퀄, 두 손은 자유
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
