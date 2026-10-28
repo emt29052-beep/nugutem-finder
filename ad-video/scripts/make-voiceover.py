@@ -73,6 +73,12 @@ def trim_silence(wav, sr, threshold=0.01, pad=0.04):
     return x[a:b]
 
 
+def master(x, drive=2.4):
+    """Peak-normalize, then soft-compress so the voice sits on top of the music."""
+    x = x / (np.max(np.abs(x)) or 1.0)
+    return np.tanh(drive * x) / np.tanh(drive) * 0.94
+
+
 def duration(path):
     with wave.open(path) as w:
         return w.getnframes() / w.getframerate()
@@ -91,7 +97,7 @@ def main():
             # speed up (capped so it still sounds natural) until the line fits its window
             while True:
                 wav, _ = tts.synthesize(text, voice_style=style, lang="ko", speed=speed, total_steps=16)
-                tts.save_audio(trim_silence(wav, tts.sample_rate)[None, :], path)
+                tts.save_audio(master(trim_silence(wav, tts.sample_rate))[None, :], path)
                 d = duration(path)
                 if d <= end - start or speed >= cfg["max_speed"]:
                     break

@@ -13,7 +13,7 @@ type Line = { file: string; start: number; duration: number; text: string };
 const TIMELINES: Record<NarrationCut, Line[]> = { cinematic, comic };
 
 /** Music gain multiplier: dips under every narration line with short ramps. */
-export const duckMusic = (frame: number, cut: NarrationCut | undefined, depth = 0.32) => {
+export const duckMusic = (frame: number, cut: NarrationCut | undefined, depth = 0.28) => {
   if (!cut) return 1;
   const ramp = 4;
   let gain = 1;
