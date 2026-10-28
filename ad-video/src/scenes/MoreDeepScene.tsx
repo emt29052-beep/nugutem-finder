@@ -3,11 +3,11 @@ import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { Bubbles, Grain } from "../components/Overlays";
 import { StaggerText } from "../components/Type";
 import { WaterBackground } from "../components/Water";
-import { DISPLAY, SANS } from "../theme";
+import { SANS } from "../theme";
 
 const PILLARS = ["안전하고", "재밌고", "스트레스 없이"];
 
-// 120f: the camera sinks into blue water — "learn it properly at 모어딥 프리다이빙".
+// 120f: sinking into blue water — "노즈클립만으로 딥다이버가 될까요?" → learn it properly at 모어딥 프리다이빙.
 export const MoreDeepScene: React.FC = () => {
   const frame = useCurrentFrame();
   return (
@@ -32,27 +32,40 @@ export const MoreDeepScene: React.FC = () => {
         ))}
       </div>
 
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", paddingBottom: 120 }}>
+      {/* beat 1 (0-60f): the question — a clip alone doesn't make a deep diver */}
+      <AbsoluteFill
+        style={{
+          justifyContent: "center",
+          alignItems: "center",
+          paddingBottom: 120,
+          opacity: interpolate(frame, [54, 60], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+        }}
+      >
         <StaggerText
-          text="노즈클립, 제대로 쓰고 싶다면"
-          at={4}
-          step={1}
-          style={{ fontFamily: SANS, fontWeight: 500, fontSize: 50, color: "#d6f1ff" }}
+          text="노즈클립만으로"
+          at={3}
+          step={2}
+          style={{ fontFamily: SANS, fontWeight: 900, fontSize: 92, color: "white", letterSpacing: -2 }}
         />
-        <div
-          style={{
-            fontFamily: DISPLAY,
-            fontWeight: 600,
-            fontSize: 38,
-            letterSpacing: 16,
-            color: "#9fdcff",
-            marginTop: 70,
-            opacity: interpolate(frame, [16, 26], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
-          }}
-        >
-          LEARN WITH
-        </div>
-        <div style={{ overflow: "hidden", marginTop: 6 }}>
+        <StaggerText
+          text="딥다이버가 될까요?"
+          at={14}
+          step={2}
+          style={{ fontFamily: SANS, fontWeight: 900, fontSize: 92, color: "#9fdcff", letterSpacing: -2 }}
+        />
+      </AbsoluteFill>
+
+      {/* beat 2 (60-120f): where to learn it properly */}
+      <AbsoluteFill
+        style={{
+          justifyContent: "center",
+          alignItems: "center",
+          paddingBottom: 120,
+          opacity: interpolate(frame, [58, 64], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+        }}
+      >
+        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 48, color: "#d6f1ff" }}>제대로 배우는 곳</div>
+        <div style={{ overflow: "hidden", marginTop: 14 }}>
           <div
             style={{
               fontFamily: SANS,
@@ -61,7 +74,7 @@ export const MoreDeepScene: React.FC = () => {
               letterSpacing: -3,
               color: "white",
               textShadow: "0 10px 40px rgba(0,40,80,0.6)",
-              translate: `0px ${interpolate(frame, [20, 36], [110, 0], {
+              translate: `0px ${interpolate(frame, [62, 76], [110, 0], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
                 easing: Easing.bezier(0.16, 1, 0.3, 1),
@@ -78,15 +91,15 @@ export const MoreDeepScene: React.FC = () => {
             fontSize: 44,
             color: "#d6f1ff",
             marginTop: 18,
-            opacity: interpolate(frame, [34, 46], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+            opacity: interpolate(frame, [74, 84], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
           }}
         >
-          프리다이빙 · 머메이드 교육센터
+          이퀄라이징부터 차근차근
         </div>
 
         <div style={{ display: "flex", gap: 22, marginTop: 80 }}>
           {PILLARS.map((p, i) => {
-            const at = 52 + i * 8;
+            const at = 84 + i * 6;
             return (
               <div
                 key={p}

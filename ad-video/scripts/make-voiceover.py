@@ -1,7 +1,7 @@
 """Generates the Korean narration with Supertonic (on-device TTS, OpenRAIL-M).
 
   python3 -m venv .venv && .venv/bin/pip install supertonic
-  .venv/bin/python scripts/make-voiceover.py
+  .venv/bin/python scripts/make-voiceover.py [cinematic|comic]
 
 Each line is synthesized separately, sped up only if it would overrun its
 scene window, and written to public/voiceover/<cut>/NN.wav plus a
@@ -10,6 +10,7 @@ src/voiceover/<cut>.json timeline that the Remotion compositions read.
 
 import json
 import os
+import sys
 
 import numpy as np
 from supertonic import TTS
@@ -33,7 +34,8 @@ CUTS = {
             (12.7, 15.3, "다른 노즈클립이 안 맞았다면, 착!"),
             (15.7, 19.3, "전용 파우치까지, 깔끔하게!"),
             (19.7, 22.4, "받아보면, 진짜 이 느낌이에요!"),
-            (22.7, 26.4, "제대로 배우고 싶다면, 모어딥 프리다이빙!"),
+            (22.6, 24.7, "노즈클립만으로, 딥다이버가 될까요?"),
+            (24.75, 26.45, "제대로 배우는 곳, 모어딥 프리다이빙!"),
             (27.2, 30.9, "착 노즈클립 프로! 유목 생활 끝. 딥플로우 코리아!"),
         ],
     },
@@ -98,7 +100,10 @@ def master(x, drive=2.4):
 
 def main():
     tts = TTS(model="supertonic-3")
+    only = set(sys.argv[1:])
     for cut, cfg in CUTS.items():
+        if only and cut not in only:
+            continue
         out_dir = os.path.join(ROOT, cut)
         os.makedirs(out_dir, exist_ok=True)
         style = tts.get_voice_style(voice_name=cfg["voice"])
