@@ -2,56 +2,48 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  STOCK_DEFS,
-  STOCK_IDS,
-  type GameView,
-  type Order,
-  type StockId,
-} from "@/lib/stock/game";
+import { ITEMS, STOCK_IDS, stockDef, type GameView, type ItemId, type StockId } from "@/lib/stock/game";
 import { Rules } from "../rules";
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
-const signed = (n: number) => (n > 0 ? `+${n.toLocaleString("ko-KR")}` : n.toLocaleString("ko-KR"));
-const def = (id: StockId) => STOCK_DEFS.find((s) => s.id === id)!;
-const emptyOrder = (): Order => ({ A: 0, B: 0, C: 0, D: 0 });
+const pctText = (from: number, to: number) => {
+  const p = ((to - from) / from) * 100;
+  return `${p > 0 ? "+" : ""}${p.toFixed(1)}%`;
+};
+const upDown = (n: number) => (n > 0 ? "text-red-400" : n < 0 ? "text-sky-400" : "text-slate-400");
 const noSubscribe = () => () => {};
 
-const PHASE_LABEL: Record<GameView["phase"], string> = {
-  lobby: "대기실",
-  talk: "💬 대화 · 협상",
-  order: "📝 비공개 주문",
-  result: "📊 결과 공개",
-  end: "🏆 게임 종료",
-};
+type Act = (action: string, extra?: Record<string, unknown>) => Promise<boolean>;
 
 export function Game({ code }: { code: string }) {
   const tokenKey = `stock:token:${code}`;
-  const storedToken = useSyncExternalStore(
-    noSubscribe,
-    () => localStorage.getItem(tokenKey) ?? "",
-    () => null
-  );
+  const storedToken = useSyncExternalStore(noSubscribe, () => localStorage.getItem(tokenKey) ?? "", () => null);
   const [joinedToken, setToken] = useState<string | null>(null);
   const token = joinedToken ?? storedToken;
   const [view, setView] = useState<GameView | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState<{ text: string; error: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const versionRef = useRef(-1);
+  const [offset, setOffset] = useState(0);
 
   const applyView = useCallback((v: GameView) => {
     versionRef.current = v.version;
+    setOffset(v.serverNow - Date.now());
     setView(v);
+  }, []);
+
+  const showToast = useCallback((text: string, error = false) => {
+    setToast({ text, error });
+    setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 2500);
   }, []);
 
   const poll = useCallback(async () => {
     if (token === null) return;
     try {
-      const res = await fetch(
-        `/api/stock?code=${code}&token=${encodeURIComponent(token)}&v=${versionRef.current}`,
-        { cache: "no-store" }
-      );
+      const res = await fetch(`/api/stock?code=${code}&token=${encodeURIComponent(token)}&v=${versionRef.current}`, {
+        cache: "no-store",
+      });
       if (res.status === 404) return setNotFound(true);
       const data = await res.json();
       if (data.view) applyView(data.view);
@@ -62,17 +54,16 @@ export function Game({ code }: { code: string }) {
 
   useEffect(() => {
     const first = setTimeout(poll, 0);
-    const id = setInterval(poll, 1500);
+    const id = setInterval(poll, 1200);
     return () => {
       clearTimeout(first);
       clearInterval(id);
     };
   }, [poll]);
 
-  const act = useCallback(
-    async (action: string, extra: Record<string, unknown> = {}) => {
+  const act: Act = useCallback(
+    async (action, extra = {}) => {
       setBusy(true);
-      setError("");
       try {
         const res = await fetch("/api/stock", {
           method: "POST",
@@ -88,13 +79,14 @@ export function Game({ code }: { code: string }) {
         if (data.view) applyView(data.view);
         return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+        showToast(e instanceof Error ? e.message : "오류가 발생했습니다.", true);
+        poll();
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [code, token, tokenKey, applyView]
+    [code, token, tokenKey, applyView, showToast, poll]
   );
 
   if (notFound)
@@ -102,567 +94,631 @@ export function Game({ code }: { code: string }) {
       <Shell>
         <div className="py-20 text-center">
           <p className="text-xl font-bold">방 {code}을(를) 찾을 수 없습니다.</p>
-          <Link href="/stock" className="mt-4 inline-block text-emerald-400 underline">
+          <Link href="/stock" className="mt-4 inline-block text-cyan-400 underline">
             처음으로
           </Link>
         </div>
       </Shell>
     );
-  if (!view) return <Shell><p className="py-20 text-center text-slate-400">불러오는 중…</p></Shell>;
+  if (!view)
+    return (
+      <Shell>
+        <p className="py-20 text-center text-slate-400">불러오는 중…</p>
+      </Shell>
+    );
 
   const me = view.me;
 
   return (
     <Shell>
-      <TopBar view={view} />
-      {error && (
-        <div className="rounded-lg border border-rose-800 bg-rose-950/60 px-4 py-2 text-sm text-rose-300">{error}</div>
+      <TopBar view={view} offset={offset} />
+      {toast && (
+        <div
+          className={`fixed inset-x-3 bottom-4 z-50 mx-auto max-w-md rounded-xl px-4 py-3 text-center text-sm font-bold shadow-2xl ${
+            toast.error ? "bg-rose-600 text-white" : "bg-emerald-500 text-slate-950"
+          }`}
+        >
+          {toast.text}
+        </div>
       )}
 
-      {!me ? (
-        view.phase === "lobby" ? (
-          <JoinForm onJoin={(name) => act("join", { name })} busy={busy} />
-        ) : (
-          <Card>
-            <p>이미 진행 중인 게임입니다. 관전 모드로 보는 중이에요.</p>
-          </Card>
-        )
-      ) : null}
+      {view.phase === "lobby" && <Lobby view={view} act={act} busy={busy} />}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4">
-          <StockBoard view={view} />
-          {me && me.cards.length > 0 && view.phase !== "result" && <MyCards view={view} />}
-          <PhasePanel view={view} act={act} busy={busy} />
-        </div>
-        <div className="space-y-4">
-          {me && <Portfolio view={view} />}
-          <Players view={view} />
-          {me && (view.phase === "talk" || view.phase === "order") && <TransferBox view={view} act={act} busy={busy} />}
-          {me && view.myTransfers.length > 0 && <TransferLog view={view} />}
-          <details className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-            <summary className="cursor-pointer font-bold">게임 방법</summary>
-            <div className="mt-3">
-              <Rules />
+      {view.phase === "trading" && (
+        <>
+          {!me && (
+            <Card>
+              <p className="text-sm text-slate-400">이미 진행 중인 게임이에요. 관전 모드로 보는 중입니다.</p>
+            </Card>
+          )}
+          {me && <MyAssets view={view} />}
+          {view.lastResult && <LastResult view={view} />}
+          <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+            <div className="grid content-start gap-3 md:grid-cols-2">
+              {view.stocks.map((s) => (
+                <StockCard key={s.id} view={view} id={s.id} act={act} busy={busy} toast={showToast} />
+              ))}
             </div>
-          </details>
+            <div className="space-y-4">
+              {me?.isHost && <HostPanel view={view} act={act} busy={busy} />}
+              {me && <SecretPanel view={view} act={act} busy={busy} toast={showToast} />}
+              {me && <ItemShop view={view} act={act} busy={busy} toast={showToast} />}
+              {me && me.intel.length > 0 && <IntelPanel view={view} />}
+              <NewsFeed view={view} />
+              <Players view={view} />
+              <RulesBox />
+            </div>
+          </div>
+        </>
+      )}
+
+      {view.phase === "end" && (
+        <div className="space-y-4">
+          <Ranking view={view} />
+          {view.lastResult && <LastResult view={view} />}
+          <NewsFeed view={view} />
+          <Card>
+            <Link href="/stock" className="font-bold text-cyan-400 underline">
+              새 게임 만들기
+            </Link>
+          </Card>
         </div>
-      </div>
+      )}
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-slate-950 px-3 py-4 text-slate-100 sm:px-6">
+    <main className="min-h-screen bg-gradient-to-b from-sky-950 via-slate-950 to-slate-950 px-3 py-4 pb-24 text-slate-100 sm:px-6">
       <div className="mx-auto max-w-6xl space-y-4">{children}</div>
     </main>
   );
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-2xl border border-slate-800 bg-slate-900 p-4 ${className}`}>{children}</section>;
+  return <section className={`rounded-2xl border border-slate-800 bg-slate-900/80 p-4 ${className}`}>{children}</section>;
 }
 
-function TopBar({ view }: { view: GameView }) {
+function useNow(ms = 250) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), ms);
+    return () => clearInterval(id);
+  }, [ms]);
+  return now;
+}
+
+function TopBar({ view, offset }: { view: GameView; offset: number }) {
+  const now = useNow();
+  const remain =
+    view.deadline !== null ? Math.max(0, Math.ceil((view.deadline - (now + offset)) / 1000)) : null;
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <Link href="/stock" className="text-2xl font-black">
-          📈 블러프 마켓
+    <header className="sticky top-0 z-40 -mx-3 flex flex-wrap items-center justify-between gap-2 bg-slate-950/90 px-3 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="flex items-center gap-2">
+        <Link href="/stock" className="text-xl font-black">
+          🌊 딥씨 거래소
         </Link>
-        <span className="rounded-md bg-slate-800 px-2 py-1 font-mono text-sm tracking-widest">{view.code}</span>
+        <span className="rounded-md bg-slate-800 px-2 py-0.5 font-mono text-sm tracking-widest">{view.code}</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
-        {view.round > 0 && (
-          <span className="rounded-full bg-slate-800 px-3 py-1">
-            라운드 {view.round} / {view.totalRounds}
+        {view.phase === "trading" && (
+          <span className="rounded-full bg-slate-800 px-3 py-1 font-bold">
+            R{view.round} / {view.totalRounds}
           </span>
         )}
-        <span className="rounded-full bg-emerald-500/15 px-3 py-1 font-bold text-emerald-300">
-          {PHASE_LABEL[view.phase]}
-        </span>
+        {view.phase === "trading" && remain !== null && (
+          <span
+            className={`rounded-full px-3 py-1 font-mono font-bold ${
+              remain <= 10 ? "animate-pulse bg-rose-600 text-white" : "bg-cyan-500/20 text-cyan-300"
+            }`}
+          >
+            ⏱ {Math.floor(remain / 60)}:{String(remain % 60).padStart(2, "0")}
+          </span>
+        )}
+        {view.phase === "lobby" && <span className="rounded-full bg-slate-800 px-3 py-1">대기실</span>}
+        {view.phase === "end" && <span className="rounded-full bg-amber-500/20 px-3 py-1 text-amber-300">🏆 게임 종료</span>}
       </div>
     </header>
   );
 }
 
-function JoinForm({ onJoin, busy }: { onJoin: (name: string) => void; busy: boolean }) {
+function Lobby({ view, act, busy }: { view: GameView; act: Act; busy: boolean }) {
+  const me = view.me;
   const [name, setName] = useState("");
+  const url = useSyncExternalStore(noSubscribe, () => window.location.href, () => "");
+  const [copied, setCopied] = useState(false);
   return (
-    <Card>
-      <p className="mb-2 font-bold">이 방에 참가하기</p>
-      <div className="flex gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={12}
-          placeholder="닉네임"
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-emerald-500"
-        />
-        <button
-          disabled={busy || !name.trim()}
-          onClick={() => onJoin(name)}
-          className="rounded-lg bg-emerald-500 px-4 font-bold text-slate-950 disabled:opacity-50"
-        >
-          참가
-        </button>
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="space-y-4">
+        {!me && (
+          <Card>
+            <p className="mb-2 font-bold">이 방에 참가하기</p>
+            <div className="flex gap-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={12}
+                placeholder="닉네임"
+                className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 outline-none focus:border-cyan-500"
+              />
+              <button
+                disabled={busy || !name.trim()}
+                onClick={() => act("join", { name })}
+                className="rounded-lg bg-cyan-500 px-4 font-bold text-slate-950 disabled:opacity-50"
+              >
+                참가
+              </button>
+            </div>
+          </Card>
+        )}
+        <Card>
+          <p className="text-lg font-bold">친구들을 초대하세요</p>
+          <p className="mt-1 text-sm text-slate-400">
+            방 코드 <b className="font-mono text-white">{view.code}</b> · {view.totalRounds}라운드 ·{" "}
+            {view.roundSeconds ? `라운드당 ${view.roundSeconds}초` : "방장이 라운드 마감"}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <input readOnly value={url} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-3 py-2 font-mono text-xs text-slate-400" />
+            <button
+              onClick={async () => {
+                await navigator.clipboard?.writeText(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              className="rounded-lg bg-slate-700 px-3 text-sm font-bold"
+            >
+              {copied ? "복사됨!" : "링크 복사"}
+            </button>
+          </div>
+          <div className="mt-4">
+            {me?.isHost ? (
+              <button
+                disabled={busy || view.players.length < 2}
+                onClick={() => act("start")}
+                className="rounded-lg bg-cyan-500 px-5 py-2 font-bold text-slate-950 disabled:opacity-50"
+              >
+                게임 시작 ({view.players.length}명)
+              </button>
+            ) : (
+              <p className="text-sm text-slate-400">방장이 게임을 시작하길 기다리는 중…</p>
+            )}
+          </div>
+        </Card>
+        <RulesBox open />
+      </div>
+      <Players view={view} />
+    </div>
+  );
+}
+
+function MyAssets({ view }: { view: GameView }) {
+  const me = view.me!;
+  const profit = me.total - 100000;
+  return (
+    <Card className="flex flex-wrap items-center justify-between gap-3 border-cyan-900">
+      <div>
+        <p className="text-xs text-slate-400">{me.name}님의 총자산</p>
+        <p className="font-mono text-2xl font-black">
+          {won(me.total)}
+          {me.totalHasHidden && <span className="text-base text-slate-400"> + ???</span>}
+        </p>
+        {!me.totalHasHidden && (
+          <p className={`font-mono text-xs ${upDown(profit)}`}>
+            시작 대비 {profit >= 0 ? "+" : ""}
+            {won(profit)}
+          </p>
+        )}
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-slate-400">💵 현금</p>
+        <p className="font-mono text-xl font-bold">{won(me.cash)}</p>
+        {me.airpocketActive && <p className="text-xs text-cyan-300">🫧 에어포켓 작동 중</p>}
       </div>
     </Card>
   );
 }
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
+function Sparkline({ data, color }: { data: (number | null)[]; color: string }) {
+  const nums = data.filter((v): v is number => v !== null);
   if (data.length < 2) return <div className="h-10" />;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
+  const max = Math.max(...nums);
+  const min = Math.min(...nums);
   const range = max - min || 1;
+  const x = (i: number) => (i / (data.length - 1)) * 100;
+  const y = (v: number) => 36 - ((v - min) / range) * 32;
   const pts = data
-    .map((v, i) => `${(i / (data.length - 1)) * 100},${36 - ((v - min) / range) * 32}`)
+    .map((v, i) => (v === null ? null : `${x(i)},${y(v)}`))
+    .filter(Boolean)
     .join(" ");
+  const hiddenLast = data[data.length - 1] === null;
   return (
     <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-10 w-full">
       <polyline points={pts} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      {hiddenLast && (
+        <text x="97" y="24" textAnchor="end" fontSize="14" fill="#94a3b8">
+          ?
+        </text>
+      )}
     </svg>
   );
 }
 
-function StockBoard({ view }: { view: GameView }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {view.stocks.map((s) => {
-        const d = def(s.id);
-        const prev = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
-        const last = s.history[s.history.length - 1];
-        const change = prev === null ? 0 : last - prev;
-        const relisted = last === 0;
-        return (
-          <div key={s.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-bold">
-                {d.emoji} {d.name}
-              </span>
-            </div>
-            <p className="mt-1 font-mono text-2xl font-black">{won(s.price)}</p>
-            <p
-              className={`font-mono text-sm ${
-                relisted ? "text-rose-400" : change > 0 ? "text-red-400" : change < 0 ? "text-sky-400" : "text-slate-500"
-              }`}
-            >
-              {relisted ? "상장폐지 → 재상장" : prev === null ? "-" : `${change > 0 ? "▲" : change < 0 ? "▼" : "-"} ${signed(change)}`}
-            </p>
-            <Sparkline data={s.history} color={d.color} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MyCards({ view }: { view: GameView }) {
-  return (
-    <Card className="border-amber-700/60 bg-gradient-to-br from-amber-950/40 to-slate-900">
-      <p className="mb-3 text-sm font-bold text-amber-300">🤫 나의 비밀 정보 카드 (이번 라운드)</p>
-      <div className="flex flex-wrap gap-3">
-        {view.me!.cards.map((c, i) => {
-          const d = def(c.stock);
-          return (
-            <div
-              key={i}
-              className="min-w-32 rounded-xl border-2 bg-slate-950 px-4 py-3 text-center"
-              style={{ borderColor: d.color }}
-            >
-              <p className="text-sm">
-                {d.emoji} {d.name}
-              </p>
-              <p className={`font-mono text-3xl font-black ${c.delta > 0 ? "text-red-400" : "text-sky-400"}`}>
-                {signed(c.delta)}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-      <p className="mt-3 text-xs text-slate-400">
-        실제 변동 = 모든 사람의 카드 합 + 시장 변동(−100~+100). 이 카드는 다른 사람에게 보이지 않습니다.
-      </p>
-    </Card>
-  );
-}
-
-function HostButton({
-  children,
-  onClick,
+function StockCard({
+  view,
+  id,
+  act,
   busy,
-  tone = "emerald",
+  toast,
 }: {
-  children: React.ReactNode;
-  onClick: () => void;
+  view: GameView;
+  id: StockId;
+  act: Act;
   busy: boolean;
-  tone?: "emerald" | "slate";
+  toast: (t: string, e?: boolean) => void;
 }) {
-  const cls = tone === "emerald" ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400" : "bg-slate-700 hover:bg-slate-600";
-  return (
-    <button disabled={busy} onClick={onClick} className={`rounded-lg px-4 py-2 font-bold disabled:opacity-50 ${cls}`}>
-      {children}
-    </button>
-  );
-}
-
-type Act = (action: string, extra?: Record<string, unknown>) => Promise<boolean>;
-
-function PhasePanel({ view, act, busy }: { view: GameView; act: Act; busy: boolean }) {
+  const s = view.stocks.find((x) => x.id === id)!;
+  const d = stockDef(id);
   const me = view.me;
-  const isHost = !!me?.isHost;
-  const host = view.players.find((p) => p.isHost)?.name;
+  const [qty, setQty] = useState(1);
+  const prev = s.history.length >= 2 ? s.history[s.history.length - 2] : null;
+  const held = me?.shares[id] ?? 0;
 
-  if (view.phase === "lobby") {
-    return (
-      <Card>
-        <p className="text-lg font-bold">친구들을 초대하세요</p>
-        <p className="mt-1 text-sm text-slate-400">
-          방 코드 <b className="font-mono text-white">{view.code}</b> 를 알려주거나 아래 링크를 공유하세요. (
-          {view.totalRounds}라운드 · 1인당 카드 {view.cardsPerPlayer}장)
-        </p>
-        <CopyLink />
-        <div className="mt-4">
-          {isHost ? (
-            <HostButton busy={busy || view.players.length < 2} onClick={() => act("start")}>
-              게임 시작 ({view.players.length}명)
-            </HostButton>
-          ) : (
-            <p className="text-sm text-slate-400">방장({host})이 게임을 시작하길 기다리는 중…</p>
-          )}
-        </div>
-      </Card>
-    );
+  async function trade(sign: 1 | -1) {
+    if (qty <= 0) return;
+    const ok = await act("trade", { stock: id, qty: sign * qty });
+    if (ok) toast(`${d.name} ${qty}주 ${sign > 0 ? "매수" : "매도"} 완료`);
   }
 
-  if (view.phase === "talk") {
-    return (
-      <Card>
-        <p className="text-lg font-bold">💬 대화 · 협상 시간</p>
-        <p className="mt-1 text-sm text-slate-400">
-          카드 정보를 공유하거나 숨기거나, 거짓말을 하세요. 필요하면 오른쪽에서 현금·주식을 송금해 거래할 수 있습니다.
-        </p>
-        <div className="mt-4">
-          {isHost ? (
-            <HostButton busy={busy} onClick={() => act("openOrders")}>
-              주문 받기 시작 →
-            </HostButton>
-          ) : (
-            <p className="text-sm text-slate-400">방장이 주문 단계를 열면 매매할 수 있습니다.</p>
-          )}
-        </div>
-      </Card>
-    );
-  }
-
-  if (view.phase === "order") {
-    const submitted = view.players.filter((p) => p.submitted).length;
-    return (
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-lg font-bold">📝 비공개 주문</p>
-          <span className="text-sm text-slate-400">
-            제출 {submitted} / {view.players.length}
-          </span>
-        </div>
-        {me ? <OrderForm view={view} act={act} busy={busy} /> : null}
-        {isHost && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-800 pt-4">
-            <HostButton busy={busy} onClick={() => act("reveal")}>
-              결과 공개 {submitted < view.players.length && "(미제출자는 거래 없음)"}
-            </HostButton>
-            <HostButton busy={busy} tone="slate" onClick={() => act("backToTalk")}>
-              ← 대화로 돌아가기
-            </HostButton>
-          </div>
-        )}
-      </Card>
-    );
-  }
-
-  if (view.phase === "result" && view.lastResult) {
-    return (
-      <div className="space-y-4">
-        <ResultPanel view={view} />
-        <Ranking view={view} />
-        <Card>
-          {isHost ? (
-            <HostButton busy={busy} onClick={() => act("next")}>
-              {view.round >= view.totalRounds ? "최종 결과 보기 🏆" : `라운드 ${view.round + 1} 시작 →`}
-            </HostButton>
-          ) : (
-            <p className="text-sm text-slate-400">방장이 다음 라운드를 시작하길 기다리는 중…</p>
-          )}
-        </Card>
-      </div>
-    );
-  }
-
-  if (view.phase === "end") {
-    return (
-      <div className="space-y-4">
-        <Ranking view={view} final />
-        {view.lastResult && <ResultPanel view={view} />}
-        <Card>
-          <Link href="/stock" className="font-bold text-emerald-400 underline">
-            새 게임 만들기
-          </Link>
-        </Card>
-      </div>
-    );
-  }
-
-  return null;
-}
-
-function CopyLink() {
-  const [copied, setCopied] = useState(false);
-  const url = useSyncExternalStore(noSubscribe, () => window.location.href, () => "");
   return (
-    <div className="mt-3 flex gap-2">
-      <input readOnly value={url} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-3 py-2 font-mono text-xs text-slate-400" />
-      <button
-        onClick={async () => {
-          await navigator.clipboard?.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        }}
-        className="rounded-lg bg-slate-700 px-3 text-sm font-bold"
-      >
-        {copied ? "복사됨!" : "링크 복사"}
-      </button>
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-bold">
+            {d.emoji} {d.name}
+          </p>
+          <p className="text-xs text-slate-500">{d.desc}</p>
+        </div>
+        <div className="text-right">
+          {s.price === null ? (
+            <p className="font-mono text-2xl font-black text-slate-400">🤫 ???</p>
+          ) : (
+            <p className="font-mono text-2xl font-black">{won(s.price)}</p>
+          )}
+          {s.price !== null && prev !== null && (
+            <p className={`font-mono text-xs ${upDown(s.price - prev)}`}>
+              {s.price > prev ? "▲" : s.price < prev ? "▼" : "-"} {pctText(prev, s.price)}
+            </p>
+          )}
+          {s.price === null && <p className="text-xs text-slate-500">누군가 시크릿을 걸었다</p>}
+        </div>
+      </div>
+      <Sparkline data={s.history} color={d.color} />
+
+      {s.hint ? (
+        <div className={`mt-1 rounded-lg px-3 py-2 ${s.hint.known ? "bg-amber-950/60" : "bg-slate-950/70"}`}>
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <span>{s.hint.known ? "🔍 내부자 정보 (나만 보임)" : "📰 숨겨진 뉴스"}</span>
+            <span className={s.hint.hit === view.round ? "font-bold text-rose-400" : ""}>
+              {s.hint.hit === view.round ? "⚡ 이번 장 마감 반영!" : `R${s.hint.hit} 마감 반영 (${s.hint.hit - view.round}라운드 후)`}
+            </span>
+          </div>
+          <p className="mt-0.5 font-mono text-[15px] font-bold tracking-wide text-slate-100">{s.hint.text}</p>
+        </div>
+      ) : (
+        <div className="mt-1 rounded-lg bg-slate-950/70 px-3 py-2 text-xs text-slate-500">예정된 뉴스 없음</div>
+      )}
+
+      {s.mySecretActive && <p className="mt-2 text-xs font-bold text-fuchsia-300">🤫 내가 시크릿을 건 종목</p>}
+
+      {me && (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>
+              보유 <b className="text-slate-100">{held}주</b>
+              {s.price !== null && held > 0 && <> · {won(held * s.price)}</>}
+            </span>
+            <span className="flex gap-1">
+              {s.price !== null && (
+                <button
+                  className="rounded bg-slate-800 px-2 py-0.5"
+                  onClick={() => setQty(Math.max(1, Math.floor(me.cash / s.price!)))}
+                >
+                  최대매수
+                </button>
+              )}
+              <button className="rounded bg-slate-800 px-2 py-0.5" onClick={() => setQty(Math.max(1, held))}>
+                전량
+              </button>
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button className="rounded bg-slate-800 px-2 py-2 text-sm" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+              −
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={qty}
+              onChange={(e) => setQty(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+              className="w-14 min-w-0 flex-1 rounded bg-slate-800 px-2 py-2 text-center font-mono"
+            />
+            <button className="rounded bg-slate-800 px-2 py-2 text-sm" onClick={() => setQty((q) => q + 1)}>
+              +
+            </button>
+            <button
+              disabled={busy || qty <= 0}
+              onClick={() => trade(1)}
+              className="rounded-lg bg-red-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
+            >
+              매수
+            </button>
+            <button
+              disabled={busy || qty <= 0 || held === 0}
+              onClick={() => trade(-1)}
+              className="rounded-lg bg-sky-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
+            >
+              매도
+            </button>
+          </div>
+          {s.price !== null && qty > 0 && (
+            <p className="text-right text-[11px] text-slate-500">
+              {qty}주 = {won(qty * s.price)}
+            </p>
+          )}
+          {s.price === null && <p className="text-right text-[11px] text-slate-500">가격 비공개 상태로 체결돼요</p>}
+        </div>
+      )}
     </div>
   );
 }
 
-function OrderForm({ view, act, busy }: { view: GameView; act: Act; busy: boolean }) {
-  const me = view.me!;
-  const [draft, setDraft] = useState<Order>(me.order ?? emptyOrder());
-  const price = (id: StockId) => view.stocks.find((s) => s.id === id)!.price;
-
-  const cashAfter =
-    me.cash - STOCK_IDS.reduce((sum, id) => sum + draft[id] * price(id), 0);
-
-  const set = (id: StockId, q: number) => {
-    const clamped = Math.max(-me.shares[id], q);
-    setDraft((d) => ({ ...d, [id]: clamped }));
-  };
-
-  const maxBuy = (id: StockId) => draft[id] + Math.max(0, Math.floor(cashAfter / price(id)));
-
-  if (me.order) {
-    return (
-      <div className="mt-3 rounded-xl bg-emerald-950/40 p-4">
-        <p className="font-bold text-emerald-300">✅ 주문 제출 완료</p>
-        <OrderSummary order={me.order} />
-        <button
-          disabled={busy}
-          onClick={async () => {
-            setDraft(me.order!);
-            await act("cancelOrder");
-          }}
-          className="mt-3 text-sm text-slate-400 underline"
-        >
-          주문 수정하기
-        </button>
-      </div>
-    );
-  }
-
+function LastResult({ view }: { view: GameView }) {
+  const r = view.lastResult!;
   return (
-    <div className="mt-3 space-y-2">
-      {STOCK_IDS.map((id) => {
-        const d = def(id);
-        const q = draft[id];
-        return (
-          <div key={id} className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-950/60 p-3">
-            <div className="w-32">
-              <p className="text-sm font-bold">
+    <Card className="border-cyan-900/70">
+      <p className="mb-2 font-bold">📢 R{r.round} 장 마감 결과</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {STOCK_IDS.map((id) => {
+          const c = r.changes[id];
+          const d = stockDef(id);
+          return (
+            <div key={id} className="rounded-lg bg-slate-950/60 px-2 py-1.5 text-xs">
+              <p className="font-bold">
                 {d.emoji} {d.name}
               </p>
-              <p className="text-xs text-slate-400">
-                {won(price(id))} · 보유 {me.shares[id]}주
-              </p>
-            </div>
-            <div className="flex flex-1 items-center justify-end gap-1">
-              <Step onClick={() => set(id, -me.shares[id])}>전량매도</Step>
-              <Step onClick={() => set(id, q - 5)}>-5</Step>
-              <Step onClick={() => set(id, q - 1)}>-1</Step>
-              <input
-                type="number"
-                value={q}
-                onChange={(e) => set(id, Math.trunc(Number(e.target.value) || 0))}
-                className="w-16 rounded bg-slate-800 px-1 py-1 text-center font-mono"
-              />
-              <Step onClick={() => set(id, q + 1)}>+1</Step>
-              <Step onClick={() => set(id, q + 5)}>+5</Step>
-              <Step onClick={() => set(id, maxBuy(id))}>최대매수</Step>
-            </div>
-            <p
-              className={`w-full text-right text-xs font-bold ${
-                q > 0 ? "text-red-400" : q < 0 ? "text-sky-400" : "text-slate-500"
-              }`}
-            >
-              {q > 0 ? `${q}주 매수 (−${won(q * price(id))})` : q < 0 ? `${-q}주 매도 (+${won(-q * price(id))})` : "거래 없음"}
-            </p>
-          </div>
-        );
-      })}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-        <p className={`text-sm ${cashAfter < 0 ? "text-rose-400" : "text-slate-300"}`}>
-          주문 후 현금: <b className="font-mono">{won(cashAfter)}</b>
-        </p>
-        <div className="flex gap-2">
-          <button onClick={() => setDraft(emptyOrder())} className="rounded-lg bg-slate-700 px-3 py-2 text-sm">
-            초기화
-          </button>
-          <button
-            disabled={busy || cashAfter < 0}
-            onClick={() => act("order", { order: draft })}
-            className="rounded-lg bg-emerald-500 px-4 py-2 font-bold text-slate-950 disabled:opacity-50"
-          >
-            {STOCK_IDS.every((id) => draft[id] === 0) ? "이번엔 거래 안 함" : "주문 제출"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Step({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="rounded bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700">
-      {children}
-    </button>
-  );
-}
-
-function OrderSummary({ order }: { order: Order | null }) {
-  if (!order || STOCK_IDS.every((id) => order[id] === 0))
-    return <span className="text-sm text-slate-500">거래 없음</span>;
-  return (
-    <span className="flex flex-wrap gap-1">
-      {STOCK_IDS.filter((id) => order[id] !== 0).map((id) => (
-        <span
-          key={id}
-          className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-            order[id] > 0 ? "bg-red-500/20 text-red-300" : "bg-sky-500/20 text-sky-300"
-          }`}
-        >
-          {def(id).emoji}
-          {def(id).name} {order[id] > 0 ? `매수 ${order[id]}` : `매도 ${-order[id]}`}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function ResultPanel({ view }: { view: GameView }) {
-  const r = view.lastResult!;
-  const name = (pid: string) => view.players.find((p) => p.id === pid)?.name ?? "?";
-  return (
-    <Card>
-      <p className="mb-3 text-lg font-bold">📊 라운드 {r.round} 결과</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {STOCK_IDS.map((id) => {
-          const d = def(id);
-          const c = r.changes[id];
-          const delta = c.to - c.from;
-          const contributions = r.cards.flatMap((pc) =>
-            pc.cards.filter((card) => card.stock === id).map((card) => ({ who: name(pc.playerId), delta: card.delta }))
-          );
-          return (
-            <div key={id} className="rounded-xl bg-slate-950/60 p-3">
-              <div className="flex items-center justify-between">
-                <span className="font-bold">
-                  {d.emoji} {d.name}
-                </span>
-                <span className={`font-mono font-bold ${delta > 0 ? "text-red-400" : delta < 0 ? "text-sky-400" : ""}`}>
-                  {won(c.from)} → {won(c.to)}
-                </span>
-              </div>
-              {c.delisted && <p className="text-sm font-bold text-rose-400">💥 상장폐지! 보유 주식 소멸, 1,000원으로 재상장</p>}
-              <div className="mt-2 flex flex-wrap gap-1 text-xs">
-                {contributions.map((x, i) => (
-                  <span key={i} className="rounded bg-slate-800 px-1.5 py-0.5">
-                    {x.who} <b className={x.delta > 0 ? "text-red-300" : "text-sky-300"}>{signed(x.delta)}</b>
-                  </span>
-                ))}
-                <span className="rounded bg-slate-800 px-1.5 py-0.5">
-                  시장 <b>{signed(c.market)}</b>
-                </span>
-              </div>
+              {c.hidden || c.to === null || c.from === null ? (
+                <p className="font-mono text-slate-400">🤫 ??? (시크릿)</p>
+              ) : (
+                <p className={`font-mono ${upDown(c.to - c.from)}`}>
+                  {won(c.from)} → {won(c.to)} ({pctText(c.from, c.to)})
+                </p>
+              )}
             </div>
           );
         })}
       </div>
-      <p className="mb-2 mt-4 font-bold">누가 무엇을 샀나</p>
-      <div className="space-y-1">
-        {r.orders.map((o) => (
-          <div key={o.playerId} className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="w-24 truncate font-bold">{name(o.playerId)}</span>
-            <OrderSummary order={o.order} />
-          </div>
+      <div className="mt-2 space-y-1 text-sm">
+        {STOCK_IDS.filter((id) => r.changes[id].news).map((id) => {
+          const n = r.changes[id].news!;
+          return (
+            <p key={id} className={n.good ? "text-red-300" : "text-sky-300"}>
+              {n.good ? "📈" : "📉"} {n.text}
+              {n.reversed && <b className="ml-1 text-amber-300">🔄 조류 역전! 효과가 뒤집혔다</b>}
+            </p>
+          );
+        })}
+        {r.log.map((l, i) => (
+          <p key={i} className="text-amber-200">
+            {l}
+          </p>
+        ))}
+        {r.mine.map((l, i) => (
+          <p key={i} className="font-bold text-cyan-300">
+            {l}
+          </p>
         ))}
       </div>
     </Card>
   );
 }
 
-function Ranking({ view, final = false }: { view: GameView; final?: boolean }) {
-  const ranked = [...view.players].sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
-  const medals = ["🥇", "🥈", "🥉"];
+function HostPanel({ view, act, busy }: { view: GameView; act: Act; busy: boolean }) {
   return (
-    <Card className={final ? "border-amber-600/60" : ""}>
-      <p className="mb-3 text-lg font-bold">{final ? "🏆 최종 순위" : "현재 순위 (총자산)"}</p>
-      <div className="space-y-2">
-        {ranked.map((p, i) => (
-          <div key={p.id} className="rounded-xl bg-slate-950/60 px-3 py-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold">
-                {medals[i] ?? `${i + 1}.`} {p.name}
-                {p.id === view.me?.id && <span className="ml-1 text-xs text-emerald-400">(나)</span>}
-              </span>
-              <span className="font-mono font-bold">{won(p.total ?? 0)}</span>
-            </div>
-            {final && p.shares && (
-              <p className="mt-1 text-xs text-slate-400">
-                현금 {won(p.cash ?? 0)} ·{" "}
-                {STOCK_IDS.filter((id) => p.shares![id] > 0)
-                  .map((id) => `${def(id).name} ${p.shares![id]}주`)
-                  .join(", ") || "주식 없음"}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+    <Card className="border-amber-700/50">
+      <p className="text-sm font-bold text-amber-300">👑 방장 메뉴</p>
+      <p className="mt-1 text-xs text-slate-400">
+        {view.roundSeconds ? "타이머가 끝나면 자동 마감돼요. 모두 준비되면 바로 마감해도 됩니다." : "모두 거래를 마치면 마감하세요."}
+      </p>
+      <button
+        disabled={busy}
+        onClick={() => {
+          if (confirm(`R${view.round} 장을 마감할까요?`)) act("endRound");
+        }}
+        className="mt-3 w-full rounded-lg bg-amber-500 py-2 font-bold text-slate-950 disabled:opacity-50"
+      >
+        {view.round >= view.totalRounds ? "마지막 장 마감 → 최종 결과" : `R${view.round} 장 마감 →`}
+      </button>
     </Card>
   );
 }
 
-function Portfolio({ view }: { view: GameView }) {
+function SecretPanel({
+  view,
+  act,
+  busy,
+  toast,
+}: {
+  view: GameView;
+  act: Act;
+  busy: boolean;
+  toast: (t: string, e?: boolean) => void;
+}) {
   const me = view.me!;
-  const price = (id: StockId) => view.stocks.find((s) => s.id === id)!.price;
+  const [stock, setStock] = useState<StockId>("A");
+  const last = view.round >= view.totalRounds;
+  return (
+    <Card className="border-fuchsia-900/60">
+      <p className="font-bold">🤫 시크릿 {me.secretUsed ? <span className="text-xs text-slate-500">(사용 완료)</span> : <span className="text-xs text-fuchsia-300">(1회 남음)</span>}</p>
+      <p className="mt-1 text-xs text-slate-400">
+        종목에 걸면 이번 장 마감 결과(상승/하락)를 다음 라운드 동안 나만 볼 수 있어요.
+      </p>
+      {!me.secretUsed && !last && (
+        <div className="mt-3 flex gap-2">
+          <select
+            value={stock}
+            onChange={(e) => setStock(e.target.value as StockId)}
+            className="min-w-0 flex-1 rounded bg-slate-800 px-2 py-2 text-sm"
+          >
+            {STOCK_IDS.map((id) => (
+              <option key={id} value={id}>
+                {stockDef(id).emoji} {stockDef(id).name}
+              </option>
+            ))}
+          </select>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              if (!confirm(`${stockDef(stock).name}에 시크릿을 걸까요? (1회 한정)`)) return;
+              if (await act("secret", { stock })) toast("시크릿을 걸었습니다 🤫");
+            }}
+            className="rounded-lg bg-fuchsia-500 px-4 text-sm font-bold text-white disabled:opacity-50"
+          >
+            걸기
+          </button>
+        </div>
+      )}
+      {!me.secretUsed && last && <p className="mt-2 text-xs text-slate-500">마지막 라운드에는 쓸 수 없어요.</p>}
+    </Card>
+  );
+}
+
+function ItemShop({
+  view,
+  act,
+  busy,
+  toast,
+}: {
+  view: GameView;
+  act: Act;
+  busy: boolean;
+  toast: (t: string, e?: boolean) => void;
+}) {
+  const me = view.me!;
+  const [open, setOpen] = useState<ItemId | null>(null);
+  const [stock, setStock] = useState<StockId>("A");
+  const others = view.players.filter((p) => p.id !== me.id);
+  const [target, setTarget] = useState(others[0]?.id ?? "");
+
   return (
     <Card>
-      <p className="text-sm text-slate-400">{me.name}님의 자산</p>
-      <p className="font-mono text-3xl font-black">{won(me.total)}</p>
-      <div className="mt-3 space-y-1 text-sm">
-        <div className="flex justify-between">
-          <span>💵 현금</span>
-          <span className="font-mono">{won(me.cash)}</span>
-        </div>
-        {STOCK_IDS.map((id) => (
-          <div key={id} className="flex justify-between text-slate-300">
-            <span>
-              {def(id).emoji} {def(id).name} {me.shares[id]}주
-            </span>
-            <span className="font-mono">{won(me.shares[id] * price(id))}</span>
-          </div>
-        ))}
+      <p className="font-bold">🎒 반전 아이템</p>
+      <p className="mb-3 text-xs text-slate-400">종류별로 한 번씩만 쓸 수 있어요. 가격은 현금에서 빠집니다.</p>
+      <div className="space-y-2">
+        {ITEMS.map((it) => {
+          const used = me.itemsUsed.includes(it.id);
+          const isOpen = open === it.id;
+          return (
+            <div key={it.id} className={`rounded-xl bg-slate-950/60 p-3 ${used ? "opacity-40" : ""}`}>
+              <button
+                disabled={used}
+                onClick={() => setOpen(isOpen ? null : it.id)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <span className="font-bold">
+                  {it.emoji} {it.name}
+                </span>
+                <span className="font-mono text-sm text-amber-300">{used ? "사용 완료" : won(it.price)}</span>
+              </button>
+              {isOpen && !used && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-slate-400">{it.desc}</p>
+                  <div className="flex gap-2">
+                    {it.target === "stock" && (
+                      <select
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value as StockId)}
+                        className="min-w-0 flex-1 rounded bg-slate-800 px-2 py-2 text-sm"
+                      >
+                        {STOCK_IDS.map((id) => (
+                          <option key={id} value={id}>
+                            {stockDef(id).emoji} {stockDef(id).name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {it.target === "player" && (
+                      <select
+                        value={target}
+                        onChange={(e) => setTarget(e.target.value)}
+                        className="min-w-0 flex-1 rounded bg-slate-800 px-2 py-2 text-sm"
+                      >
+                        {others.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <button
+                      disabled={busy || me.cash < it.price}
+                      onClick={async () => {
+                        const tName =
+                          it.target === "stock"
+                            ? stockDef(stock).name
+                            : it.target === "player"
+                              ? others.find((p) => p.id === target)?.name
+                              : "나";
+                        if (!confirm(`${it.name}을(를) ${tName}에게 사용할까요? (${won(it.price)})`)) return;
+                        if (await act("item", { item: it.id, stock, target })) {
+                          toast(`${it.emoji} ${it.name} 사용!`);
+                          setOpen(null);
+                        }
+                      }}
+                      className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
+                    >
+                      사용
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+    </Card>
+  );
+}
+
+function IntelPanel({ view }: { view: GameView }) {
+  return (
+    <Card className="border-amber-800/60">
+      <p className="mb-2 font-bold">🗂 내가 얻은 비밀 정보</p>
+      <ul className="space-y-1 text-xs text-slate-300">
+        {view.me!.intel.map((x, i) => (
+          <li key={i}>
+            <span className="text-slate-500">R{x.round}</span> {x.text}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function NewsFeed({ view }: { view: GameView }) {
+  if (view.newsFeed.length === 0) return null;
+  return (
+    <Card>
+      <p className="mb-2 font-bold">🗞 지난 뉴스</p>
+      <ul className="max-h-64 space-y-1 overflow-y-auto text-xs">
+        {view.newsFeed.map((n, i) => (
+          <li key={i} className={n.good ? "text-red-300" : "text-sky-300"}>
+            <span className="text-slate-500">R{n.round}</span> {n.good ? "📈" : "📉"} {n.text}
+            {n.reversed && " 🔄"}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -673,17 +729,10 @@ function Players({ view }: { view: GameView }) {
       <p className="mb-2 font-bold">참가자 {view.players.length}명</p>
       <ul className="space-y-1 text-sm">
         {view.players.map((p) => (
-          <li key={p.id} className="flex items-center justify-between">
-            <span>
-              {p.isHost && "👑 "}
-              {p.name}
-              {p.id === view.me?.id && <span className="ml-1 text-xs text-emerald-400">(나)</span>}
-            </span>
-            {view.phase === "order" && (
-              <span className={p.submitted ? "text-emerald-400" : "text-slate-500"}>
-                {p.submitted ? "제출 완료" : "고민 중…"}
-              </span>
-            )}
+          <li key={p.id}>
+            {p.isHost && "👑 "}
+            {p.name}
+            {p.id === view.me?.id && <span className="ml-1 text-xs text-cyan-400">(나)</span>}
           </li>
         ))}
       </ul>
@@ -691,110 +740,53 @@ function Players({ view }: { view: GameView }) {
   );
 }
 
-function TransferBox({ view, act, busy }: { view: GameView; act: Act; busy: boolean }) {
-  const me = view.me!;
-  const others = view.players.filter((p) => p.id !== me.id);
-  const [to, setTo] = useState(others[0]?.id ?? "");
-  const [cash, setCash] = useState(0);
-  const [stock, setStock] = useState<StockId | "">("");
-  const [qty, setQty] = useState(0);
-  const toName = others.find((p) => p.id === to)?.name;
-
+function Ranking({ view }: { view: GameView }) {
+  const ranked = [...view.players].sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
+  const medals = ["🥇", "🥈", "🥉"];
   return (
-    <Card>
-      <p className="font-bold">🤝 송금 · 주식 양도</p>
-      <p className="mb-3 text-xs text-slate-400">정보 거래, 동맹, 뒷거래에 사용하세요. 받는 사람과 나에게만 기록이 보입니다.</p>
-      <div className="space-y-2 text-sm">
-        <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full rounded bg-slate-800 px-2 py-2">
-          {others.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-2">
-          <span className="w-12">현금</span>
-          <input
-            type="number"
-            min={0}
-            value={cash}
-            onChange={(e) => setCash(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
-            className="flex-1 rounded bg-slate-800 px-2 py-1 font-mono"
-          />
-        </label>
-        <div className="flex items-center gap-2">
-          <span className="w-12">주식</span>
-          <select
-            value={stock}
-            onChange={(e) => setStock(e.target.value as StockId | "")}
-            className="flex-1 rounded bg-slate-800 px-2 py-1"
-          >
-            <option value="">없음</option>
-            {STOCK_IDS.map((id) => (
-              <option key={id} value={id} disabled={me.shares[id] === 0}>
-                {def(id).name} (보유 {me.shares[id]})
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min={0}
-            value={qty}
-            disabled={!stock}
-            onChange={(e) => setQty(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
-            className="w-16 rounded bg-slate-800 px-2 py-1 font-mono disabled:opacity-40"
-          />
-        </div>
-        <button
-          disabled={busy || !to || (cash === 0 && (!stock || qty === 0))}
-          onClick={async () => {
-            const what = [cash > 0 && won(cash), stock && qty > 0 && `${def(stock).name} ${qty}주`]
-              .filter(Boolean)
-              .join(" + ");
-            if (!confirm(`${toName}님에게 ${what}을(를) 보낼까요? 되돌릴 수 없습니다.`)) return;
-            const ok = await act("transfer", { to, cash, stock: stock || null, qty: stock ? qty : 0 });
-            if (ok) {
-              setCash(0);
-              setQty(0);
-              setStock("");
-            }
-          }}
-          className="w-full rounded-lg bg-amber-500 py-2 font-bold text-slate-950 disabled:opacity-50"
-        >
-          보내기
-        </button>
+    <Card className="border-amber-600/60">
+      <p className="mb-3 text-xl font-black">🏆 최종 순위</p>
+      <div className="space-y-2">
+        {ranked.map((p, i) => {
+          const profit = (p.total ?? 0) - 100000;
+          return (
+            <div key={p.id} className={`rounded-xl px-3 py-2 ${i === 0 ? "bg-amber-500/15" : "bg-slate-950/60"}`}>
+              <div className="flex items-center justify-between">
+                <span className="font-bold">
+                  {medals[i] ?? `${i + 1}.`} {p.name}
+                  {p.id === view.me?.id && <span className="ml-1 text-xs text-cyan-400">(나)</span>}
+                </span>
+                <span className="text-right">
+                  <span className="block font-mono font-bold">{won(p.total ?? 0)}</span>
+                  <span className={`block font-mono text-xs ${upDown(profit)}`}>
+                    {profit >= 0 ? "+" : ""}
+                    {won(profit)}
+                  </span>
+                </span>
+              </div>
+              {p.shares && (
+                <p className="mt-1 text-xs text-slate-400">
+                  현금 {won(p.cash ?? 0)} ·{" "}
+                  {STOCK_IDS.filter((id) => p.shares![id] > 0)
+                    .map((id) => `${stockDef(id).name} ${p.shares![id]}주`)
+                    .join(", ") || "주식 없음"}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
 }
 
-function TransferLog({ view }: { view: GameView }) {
-  const name = (pid: string) => view.players.find((p) => p.id === pid)?.name ?? "?";
-  const me = view.me!;
+function RulesBox({ open = false }: { open?: boolean }) {
   return (
-    <Card>
-      <p className="mb-2 font-bold">내 거래 기록</p>
-      <ul className="space-y-1 text-xs text-slate-300">
-        {[...view.myTransfers].reverse().map((t, i) => {
-          const items = [t.cash > 0 && won(t.cash), t.stock && t.qty > 0 && `${def(t.stock).name} ${t.qty}주`]
-            .filter(Boolean)
-            .join(" + ");
-          return (
-            <li key={i}>
-              R{t.round} ·{" "}
-              {t.from === me.id ? (
-                <>
-                  <b>{name(t.to)}</b>에게 {items} 보냄
-                </>
-              ) : (
-                <>
-                  <b>{name(t.from)}</b>에게서 {items} 받음
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
+    <details open={open} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+      <summary className="cursor-pointer font-bold">게임 방법</summary>
+      <div className="mt-3">
+        <Rules />
+      </div>
+    </details>
   );
 }

@@ -1,33 +1,40 @@
+import { ITEMS } from "@/lib/stock/game";
+
 export function Rules() {
   return (
     <div className="space-y-3 text-sm leading-relaxed text-slate-300">
       <p>
-        <b className="text-white">목표</b> — 마지막 라운드가 끝났을 때 <b>총자산(현금 + 주식 평가액)</b>이 가장 많은
-        사람이 승리합니다. 모두 현금 10,000원으로 시작하고, 4개 종목은 모두 1,000원에서 출발합니다.
+        <b className="text-white">목표</b> — 모두 <b>현금 100,000원</b>으로 시작합니다. 마지막 라운드가 끝났을 때{" "}
+        <b>총자산(현금 + 주식 평가액)</b>이 가장 많은 사람이 승리!
       </p>
       <ol className="list-decimal space-y-2 pl-5">
         <li>
-          <b className="text-white">비밀 정보 카드</b> — 매 라운드 각자 정보 카드를 받습니다. 예) “감마에너지 +150”.
-          이번 라운드 각 종목의 주가 변동 = <b>모든 플레이어 카드 숫자의 합 + 시장 변동(−100~+100)</b>.
-          즉 혼자서는 절대 정답을 알 수 없습니다.
+          <b className="text-white">숨겨진 뉴스 힌트</b> — 6개 다이빙 종목마다 앞으로 터질 뉴스가 숨겨져 있어요. 핵심 글자는{" "}
+          <span className="font-mono">○</span>로 가려져 있고 <b>라운드마다 몇 글자씩 공개</b>됩니다. 예){" "}
+          <span className="font-mono text-slate-100">코랄리조트, ○호 백○ 현상 ○○</span>. 뉴스는 표시된 라운드 장 마감 때
+          주가에 크게 반영돼요. 호재일까, 악재일까?
         </li>
         <li>
-          <b className="text-white">대화 · 협상</b> — 자유롭게 정보를 공유하세요. 단, <b>거짓말도 허용</b>됩니다.
-          카드는 본인 화면에만 보입니다. 현금이나 주식을 다른 사람에게 <b>송금</b>해서 정보를 사거나 동맹을 맺을 수도
-          있습니다.
+          <b className="text-white">자유 매매</b> — 라운드 동안 각자 휴대폰으로 원하는 만큼 사고팔 수 있어요. 가격은 라운드
+          중에는 고정, 장 마감 때 변합니다. (평소 등락 −4%~+4% + 뉴스 효과 + 아이템 효과)
         </li>
         <li>
-          <b className="text-white">비공개 주문</b> — 방장이 주문을 열면 각자 몰래 매수/매도 수량을 제출합니다. 주문은 모두{" "}
-          <b>현재 가격</b>으로 체결됩니다.
+          <b className="text-white">🤫 시크릿 (1인 1회)</b> — 한 종목에 걸면, 이번 장 마감 때 그 종목이 올랐는지 내렸는지{" "}
+          <b>다음 라운드 동안 나만</b> 알 수 있어요. 다른 사람들은 가격 “???” 상태로 거래해야 합니다.
         </li>
         <li>
-          <b className="text-white">결과 공개</b> — 모든 카드와 주문이 공개되고 주가가 변동합니다. 주가가 0 이하가 되면{" "}
-          <b className="text-rose-400">상장폐지</b>: 그 종목을 가진 사람의 주식은 전부 사라지고, 종목은 1,000원으로
-          재상장됩니다.
+          <b className="text-white">반전 아이템 (종류별 1인 1회, 현금으로 구매)</b>
+          <ul className="mt-1 space-y-1">
+            {ITEMS.map((it) => (
+              <li key={it.id}>
+                {it.emoji} <b className="text-slate-100">{it.name}</b> ({it.price.toLocaleString("ko-KR")}원) — {it.desc}
+              </li>
+            ))}
+          </ul>
         </li>
       </ol>
       <p className="text-slate-400">
-        팁: 다들 “오른다”고 할 때 몰래 팔고, 남이 무엇을 샀는지 보고 다음 라운드의 거짓말을 간파하세요.
+        말로 하는 정보 공유·거짓말·동맹 모두 자유! 단, 남의 휴대폰 훔쳐보기는 반칙 🙅
       </p>
     </div>
   );
