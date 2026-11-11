@@ -10,13 +10,16 @@ export function Rules() {
       <ol className="list-decimal space-y-2 pl-5">
         <li>
           <b className="text-white">숨겨진 뉴스 힌트</b> — 6개 다이빙 종목마다 앞으로 터질 뉴스가 숨겨져 있어요. 핵심 글자는{" "}
-          <span className="font-mono">○</span>로 가려져 있고 <b>라운드마다 몇 글자씩 공개</b>됩니다. 예){" "}
-          <span className="font-mono text-slate-100">코랄리조트, ○호 백○ 현상 ○○</span>. 뉴스는 표시된 라운드 장 마감 때
+          <span className="font-mono">○</span>로 가려져 있고 <b>라운드마다 몇 글자씩 공개</b>되지만, 반영 직전까지도 절반 정도만 보이고 호재·악재를 가르는 결정적인 글자는 끝까지 숨겨져 있어요. 예){" "}
+          <span className="font-mono text-slate-100">블루웨일투어, 고래 ○광 ○가 ○○</span>. 뉴스는 표시된 라운드 장 마감 때
           주가에 크게 반영돼요. 호재일까, 악재일까?
         </li>
         <li>
           <b className="text-white">자유 매매</b> — 라운드 동안 각자 휴대폰으로 원하는 만큼 사고팔 수 있어요. 가격은 라운드
           중에는 고정, 장 마감 때 변합니다. (평소 등락 −4%~+4% + 뉴스 효과 + 아이템 효과)
+        </li>
+        <li>
+          <b className="text-white">🏅 순위 공개</b> — 장 마감 때마다 전체 순위가 공개돼요. 금액은 비밀!
         </li>
         <li>
           <b className="text-white">🤫 시크릿 (1인 1회)</b> — 한 종목에 걸면, 이번 장 마감 때 그 종목이 올랐는지 내렸는지{" "}
@@ -34,7 +37,7 @@ export function Rules() {
         </li>
       </ol>
       <p className="text-slate-400">
-        말로 하는 정보 공유·거짓말·동맹 모두 자유! 단, 남의 휴대폰 훔쳐보기는 반칙 🙅
+        💬 채팅이나 말로 하는 정보 공유·거짓말·동맹 모두 자유! 단, 남의 휴대폰 훔쳐보기는 반칙 🙅
       </p>
     </div>
   );

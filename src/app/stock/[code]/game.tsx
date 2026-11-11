@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Chat } from "./chat";
 import { ITEMS, STOCK_IDS, stockDef, type GameView, type ItemId, type StockId } from "@/lib/stock/game";
 import { Rules } from "../rules";
 
@@ -114,13 +115,15 @@ export function Game({ code }: { code: string }) {
       <TopBar view={view} offset={offset} />
       {toast && (
         <div
-          className={`fixed inset-x-3 bottom-4 z-50 mx-auto max-w-md rounded-xl px-4 py-3 text-center text-sm font-bold shadow-2xl ${
+          className={`fixed inset-x-3 top-16 z-50 mx-auto max-w-md rounded-xl px-4 py-3 text-center text-sm font-bold shadow-2xl ${
             toast.error ? "bg-rose-600 text-white" : "bg-emerald-500 text-slate-950"
           }`}
         >
           {toast.text}
         </div>
       )}
+
+      {me && <Chat view={view} act={act} />}
 
       {view.phase === "lobby" && <Lobby view={view} act={act} busy={busy} />}
 
@@ -520,6 +523,27 @@ function LastResult({ view }: { view: GameView }) {
           </p>
         ))}
       </div>
+      {r.ranking.length > 0 && view.phase === "trading" && (
+        <div className="mt-3 border-t border-slate-800 pt-3">
+          <p className="mb-2 text-sm font-bold">🏅 R{r.round} 마감 순위 <span className="text-xs font-normal text-slate-500">(금액은 비공개)</span></p>
+          <div className="flex flex-wrap gap-2">
+            {r.ranking.map((x) => {
+              const diff = x.prevRank === null ? 0 : x.prevRank - x.rank;
+              const isMe = x.id === view.me?.id;
+              return (
+                <span
+                  key={x.id}
+                  className={`rounded-lg px-2.5 py-1 text-sm ${isMe ? "bg-cyan-500/20 font-bold text-cyan-200" : "bg-slate-950/70"}`}
+                >
+                  {["🥇", "🥈", "🥉"][x.rank - 1] ?? `${x.rank}위`} {x.name}
+                  {diff > 0 && <span className="ml-1 text-xs text-red-400">▲{diff}</span>}
+                  {diff < 0 && <span className="ml-1 text-xs text-sky-400">▼{-diff}</span>}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

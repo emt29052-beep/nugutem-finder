@@ -211,7 +211,11 @@ export type RoundResult = {
   changes: Record<StockId, StockChange>;
   log: string[];
   private: { playerId: string; text: string }[];
+  ranking?: string[]; // 장 마감 시점 총자산 순위 (playerId, 1등부터)
 };
+
+export type ChatMsg = { id: number; playerId: string; text: string; at: number };
+export const CHAT_MAX_LEN = 200;
 
 export type GameState = {
   code: string;
@@ -227,6 +231,7 @@ export type GameState = {
   secrets: Secret[];
   effects: Effect[];
   results: RoundResult[];
+  chat?: ChatMsg[];
   createdAt: number;
 };
 
@@ -239,13 +244,6 @@ function randInt(min: number, max: number) {
 }
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
-}
-function shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
 
 export function randomId(len = 16) {
@@ -272,7 +270,6 @@ function makeEvent(stock: StockId, announce: number, totalRounds: number): NewsE
   const good = Math.random() < 0.5;
   const key = pick(good ? pool.good : pool.bad);
   const hit = Math.min(totalRounds, announce + randInt(1, 3)); // 2~4라운드 동안 노출
-  const revealable = [...key].map((ch, i) => (ch === " " ? -1 : i)).filter((i) => i >= 0);
   const big = Math.random() < 0.25;
   const magnitude = big ? randInt(35, 55) : randInt(12, 30);
   return {
@@ -284,17 +281,36 @@ function makeEvent(stock: StockId, announce: number, totalRounds: number): NewsE
     pct: (good ? magnitude : -magnitude) / 100,
     announce,
     hit,
-    order: shuffle(revealable),
+    order: revealOrder(stock, key, good),
     reversed: false,
   };
 }
 
+// 호재/악재 문구에 공통으로 들어가는 애매한 글자부터 먼저 공개하고,
+// 방향을 결정짓는 글자는 최대한 늦게 공개한다.
+function revealOrder(stock: StockId, key: string, good: boolean) {
+  const pool = stockDef(stock).news;
+  const opposite = (good ? pool.bad : pool.good).join("");
+  const same = (good ? pool.good : pool.bad).filter((k) => k !== key).join("");
+  const chars = [...key];
+  const score = (ch: string) => (opposite.includes(ch) ? 2 : 0) + (same.includes(ch) ? 0.5 : 0) + Math.random() * 1.5;
+  return chars
+    .map((ch, i) => ({ i, ch }))
+    .filter((x) => x.ch !== " ")
+    .map((x) => ({ i: x.i, s: score(x.ch) }))
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.i);
+}
+
+export const REVEAL_RATIO = 0.45; // 반영 직전까지 공개되는 글자 비율
+
 export function revealedCount(e: NewsEvent, round: number) {
   const total = e.order.length;
   const span = e.hit - e.announce + 1;
-  const target = Math.ceil(total * 0.7); // 반영 직전까지 약 70% 공개
+  const target = Math.max(1, Math.round(total * REVEAL_RATIO));
   const step = Math.min(span, Math.max(1, round - e.announce + 1));
-  return Math.max(1, Math.min(total - 1, Math.round((target * step) / span)));
+  const n = Math.floor((target * step) / span);
+  return Math.min(total - 1, Math.max(step === span ? 1 : 0, n));
 }
 
 export function maskedKey(e: NewsEvent, round: number) {
@@ -438,7 +454,10 @@ function resolveRound(state: GameState) {
     priv.push({ playerId: p.id, text: `🫧 에어포켓 발동! 하락분 ${won(refund)} 보상` });
   }
 
-  state.results.push({ round: r, changes, log, private: priv });
+  const ranking = [...state.players]
+    .sort((x, y) => totalAssets(state, y) - totalAssets(state, x))
+    .map((p) => p.id);
+  state.results.push({ round: r, changes, log, private: priv, ranking });
 
   if (r >= state.totalRounds) {
     state.phase = "end";
@@ -486,6 +505,16 @@ export function applyAction(state: GameState, token: string, action: string, bod
   }
 
   const p = requirePlayer(state, token);
+
+  if (action === "chat") {
+    const text = String(body.text ?? "").trim().slice(0, CHAT_MAX_LEN);
+    if (!text) throw new GameError("메시지를 입력해주세요.");
+    const chat = (state.chat ??= []);
+    chat.push({ id: (chat[chat.length - 1]?.id ?? 0) + 1, playerId: p.id, text, at: Date.now() });
+    if (chat.length > 150) chat.splice(0, chat.length - 150);
+    return;
+  }
+
   if (state.phase !== "trading") throw new GameError("거래 시간이 아닙니다.");
   if (isDue(state)) throw new GameError("라운드가 마감되었습니다. 새 가격을 확인하세요.");
 
@@ -598,7 +627,14 @@ export type GameView = {
     airpocketActive: boolean;
     intel: Intel[];
   } | null;
-  lastResult: { round: number; changes: Record<StockId, ChangeView>; log: string[]; mine: string[] } | null;
+  lastResult: {
+    round: number;
+    changes: Record<StockId, ChangeView>;
+    log: string[];
+    mine: string[];
+    ranking: { id: string; name: string; rank: number; prevRank: number | null }[];
+  } | null;
+  chat: { id: number; playerId: string; name: string; text: string; at: number }[];
   newsFeed: { round: number; stock: StockId; text: string; good: boolean; reversed: boolean }[];
 };
 
@@ -634,6 +670,7 @@ export function toView(state: GameState, token: string | null): GameView {
     };
   });
 
+  const nameOf = (id: string) => state.players.find((p) => p.id === id)?.name ?? "?";
   const last = state.results[state.results.length - 1];
   const lastResult = last
     ? {
@@ -647,6 +684,11 @@ export function toView(state: GameState, token: string | null): GameView {
         ) as Record<StockId, ChangeView>,
         log: last.log,
         mine: me ? last.private.filter((x) => x.playerId === me.id).map((x) => x.text) : [],
+        ranking: (last.ranking ?? []).map((id, i) => {
+          const prev = state.results[state.results.length - 2]?.ranking;
+          const pi = prev ? prev.indexOf(id) : -1;
+          return { id, name: nameOf(id), rank: i + 1, prevRank: pi >= 0 ? pi + 1 : null };
+        }),
       }
     : null;
 
@@ -706,5 +748,6 @@ export function toView(state: GameState, token: string | null): GameView {
       : null,
     lastResult,
     newsFeed,
+    chat: (state.chat ?? []).slice(-100).map((m) => ({ ...m, name: nameOf(m.playerId) })),
   };
 }
