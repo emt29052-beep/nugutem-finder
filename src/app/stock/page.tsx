@@ -81,7 +81,7 @@ export default function StockHome() {
                   <option value={0}>방장이 마감</option>
                   {[30, 45, 60, 90, 120, 180, 300].map((n) => (
                     <option key={n} value={n}>
-                      {n >= 60 ? `${n / 60}분${n % 60 ? ` ${n % 60}초` : ""}` : `${n}초`}
+                      {n >= 60 ? `${Math.floor(n / 60)}분${n % 60 ? ` ${n % 60}초` : ""}` : `${n}초`}
                     </option>
                   ))}
                 </select>
