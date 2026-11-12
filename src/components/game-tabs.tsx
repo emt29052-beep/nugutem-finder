@@ -16,7 +16,7 @@ export function GameTabs() {
           <Link
             key={g.href}
             href={g.href}
-            className={`flex-1 rounded-xl px-3 py-2 text-center text-sm font-bold transition ${
+            className={`flex-1 whitespace-nowrap rounded-xl px-1.5 py-2 text-center text-xs font-bold transition sm:px-3 sm:text-sm ${
               active ? "bg-slate-100 text-slate-950" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
             }`}
           >
