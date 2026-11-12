@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  GameError,
+  applyAction,
+  createGame,
+  isDue,
+  joinGame,
+  randomRoomCode,
+  tick,
+  toView,
+  type GameState,
+} from "@/lib/stock/game";
+import { insertGame, loadGame, updateGame } from "@/lib/stock/store";
+
+const normCode = (c: unknown) => String(c ?? "").trim().toUpperCase().slice(0, 8);
+
+function fail(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+/** 타이머가 끝난 라운드가 있으면 마감 처리 후 최신 상태를 돌려준다 */
+async function loadFresh(code: string): Promise<GameState | null> {
+  const state = await loadGame(code);
+  if (!state || !isDue(state)) return state;
+  const r = await updateGame(code, (s) => tick(s));
+  return r?.state ?? null;
+}
+
+// 게임 상태 조회 (폴링)
+export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
+  const state = await loadFresh(normCode(sp.get("code")));
+  if (!state) return fail("방을 찾을 수 없습니다.", 404);
+  const since = Number(sp.get("v") ?? -1);
+  if (since === state.version) return NextResponse.json({ unchanged: true, serverNow: Date.now() });
+  return NextResponse.json({ view: toView(state, sp.get("token")) });
+}
+
+export async function POST(request: NextRequest) {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return fail("잘못된 요청입니다.");
+  }
+
+  try {
+    const action = String(body.action ?? "");
+
+    if (action === "create") {
+      for (let i = 0; i < 10; i++) {
+        const { state, player } = createGame(randomRoomCode(), body.name, body.rounds, body.seconds);
+        if (await insertGame(state)) {
+          return NextResponse.json({ code: state.code, token: player.token, view: toView(state, player.token) });
+        }
+      }
+      return fail("방을 만들지 못했습니다. 다시 시도해주세요.", 500);
+    }
+
+    const code = normCode(body.code);
+
+    if (action === "join") {
+      const r = await updateGame(code, (s) => joinGame(s, body.name));
+      if (!r) return fail("방을 찾을 수 없습니다.", 404);
+      return NextResponse.json({ code, token: r.result.token, view: toView(r.state, r.result.token) });
+    }
+
+    if (!(await loadFresh(code))) return fail("방을 찾을 수 없습니다.", 404);
+    const token = String(body.token ?? "");
+    const r = await updateGame(code, (s) => applyAction(s, token, action, body));
+    if (!r) return fail("방을 찾을 수 없습니다.", 404);
+    return NextResponse.json({ view: toView(r.state, token) });
+  } catch (e) {
+    if (e instanceof GameError) return fail(e.message);
+    console.error(e);
+    return fail(e instanceof Error ? e.message : "서버 오류", 500);
+  }
+}
