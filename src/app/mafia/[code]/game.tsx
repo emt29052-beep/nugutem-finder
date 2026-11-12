@@ -19,8 +19,14 @@ export function MafiaGame({ code }: { code: string }) {
   const [toast, setToast] = useState<{ text: string; error: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const versionRef = useRef(-1);
+  // 참가 직후 이전 신원(토큰)으로 보낸 조회 응답이 늦게 도착해 화면을 덮어쓰지 않도록
+  const tokenRef = useRef(token);
+  useEffect(() => {
+    tokenRef.current = token;
+  }, [token]);
 
   const applyView = useCallback((v: GameView) => {
+    if (v.version < versionRef.current) return; // 더 오래된 응답은 무시
     versionRef.current = v.version;
     setView(v);
   }, []);
@@ -32,12 +38,14 @@ export function MafiaGame({ code }: { code: string }) {
 
   const poll = useCallback(async () => {
     if (token === null) return;
+    const sentToken = token;
     try {
       const res = await fetch(`/api/mafia?code=${code}&token=${encodeURIComponent(token)}&v=${versionRef.current}`, {
         cache: "no-store",
       });
       if (res.status === 404) return setNotFound(true);
       const data = await res.json();
+      if (sentToken !== tokenRef.current) return;
       if (data.view) applyView(data.view);
     } catch {
       /* 다음 폴링에서 재시도 */
@@ -71,6 +79,7 @@ export function MafiaGame({ code }: { code: string }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         if (data.token) {
+          tokenRef.current = data.token;
           localStorage.setItem(tokenKey, data.token);
           setToken(data.token);
         }
