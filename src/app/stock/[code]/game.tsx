@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Chat } from "./chat";
+import { Chat } from "@/components/chat";
 import { ITEMS, STOCK_IDS, stockDef, type GameView, type ItemId, type StockId } from "@/lib/stock/game";
 import { Rules } from "../rules";
 
@@ -56,9 +56,15 @@ export function Game({ code }: { code: string }) {
   useEffect(() => {
     const first = setTimeout(poll, 0);
     const id = setInterval(poll, 1200);
+    // 휴대폰 화면을 다시 켜거나 앱으로 돌아오면 바로 최신 상태로
+    const onVisible = () => document.visibilityState === "visible" && poll();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
       clearTimeout(first);
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
   }, [poll]);
 
@@ -123,7 +129,7 @@ export function Game({ code }: { code: string }) {
         </div>
       )}
 
-      {me && <Chat view={view} act={act} />}
+      {me && <Chat messages={view.chat} meId={me.id} onSend={(text) => act("chat", { text })} />}
 
       {view.phase === "lobby" && <Lobby view={view} act={act} busy={busy} />}
 

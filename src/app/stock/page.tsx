@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Rules } from "./rules";
+import { GameTabs } from "@/components/game-tabs";
 
 export default function StockHome() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function StockHome() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-950 via-slate-950 to-slate-950 px-4 py-10 text-slate-100">
       <div className="mx-auto max-w-xl space-y-6">
+        <GameTabs />
         <header className="text-center">
           <p className="text-sm tracking-[0.3em] text-cyan-400">DEEP SEA EXCHANGE</p>
           <h1 className="mt-2 text-4xl font-black">🌊 딥씨 거래소</h1>

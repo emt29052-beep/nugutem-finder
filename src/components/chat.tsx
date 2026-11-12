@@ -1,18 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GameView } from "@/lib/stock/game";
+export type ChatMessage = { id: number; playerId: string; name: string; text: string; channel?: string };
 
-type Act = (action: string, extra?: Record<string, unknown>) => Promise<boolean>;
+const CHANNEL_TAG: Record<string, { label: string; cls: string }> = {
+  mafia: { label: "🔪 마피아", cls: "text-rose-400" },
+  dead: { label: "👻 유령", cls: "text-violet-300" },
+};
 
-export function Chat({ view, act }: { view: GameView; act: Act }) {
+/**
+ * 화면 오른쪽 아래 떠 있는 채팅.
+ * disabledReason 이 있으면 입력창 대신 그 안내를 보여준다.
+ */
+export function Chat({
+  messages,
+  meId,
+  onSend,
+  title = "💬 채팅",
+  subtitle = "거짓말도 자유!",
+  disabledReason,
+}: {
+  messages: ChatMessage[];
+  meId: string | undefined;
+  onSend: (text: string) => Promise<boolean>;
+  title?: string;
+  subtitle?: string;
+  disabledReason?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const lastId = view.chat[view.chat.length - 1]?.id ?? 0;
-  const unread = open ? 0 : view.chat.filter((m) => m.id > seen && m.playerId !== view.me?.id).length;
+  const lastId = messages[messages.length - 1]?.id ?? 0;
+  const unread = open ? 0 : messages.filter((m) => m.id > seen && m.playerId !== meId).length;
 
   useEffect(() => {
     if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -27,7 +48,7 @@ export function Chat({ view, act }: { view: GameView; act: Act }) {
     const t = text.trim();
     if (!t || sending) return;
     setSending(true);
-    if (await act("chat", { text: t })) setText("");
+    if (await onSend(t)) setText("");
     setSending(false);
   }
 
@@ -48,14 +69,23 @@ export function Chat({ view, act }: { view: GameView; act: Act }) {
 
       {open && (
         <div className="fixed inset-x-3 bottom-20 z-50 flex h-[60vh] max-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl sm:left-auto sm:right-4 sm:w-96">
-          <div className="border-b border-slate-800 px-4 py-2 text-sm font-bold">💬 채팅 <span className="font-normal text-slate-500">· 거짓말도 자유!</span></div>
+          <div className="border-b border-slate-800 px-4 py-2 text-sm font-bold">
+            {title} <span className="font-normal text-slate-500">· {subtitle}</span>
+          </div>
           <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
-            {view.chat.length === 0 && <p className="py-8 text-center text-sm text-slate-500">아직 메시지가 없어요</p>}
-            {view.chat.map((m) => {
-              const mine = m.playerId === view.me?.id;
+            {messages.length === 0 && <p className="py-8 text-center text-sm text-slate-500">아직 메시지가 없어요</p>}
+            {messages.map((m) => {
+              const mine = m.playerId === meId;
               return (
                 <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                  {!mine && <span className="mb-0.5 text-[11px] text-slate-400">{m.name}</span>}
+                  {(!mine || (m.channel && CHANNEL_TAG[m.channel])) && (
+                    <span className="mb-0.5 text-[11px] text-slate-400">
+                      {m.channel && CHANNEL_TAG[m.channel] && (
+                        <b className={`mr-1 ${CHANNEL_TAG[m.channel].cls}`}>{CHANNEL_TAG[m.channel].label}</b>
+                      )}
+                      {!mine && m.name}
+                    </span>
+                  )}
                   <span
                     className={`max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 text-sm ${
                       mine ? "rounded-br-sm bg-cyan-500 text-slate-950" : "rounded-bl-sm bg-slate-800 text-slate-100"
@@ -67,6 +97,9 @@ export function Chat({ view, act }: { view: GameView; act: Act }) {
               );
             })}
           </div>
+          {disabledReason ? (
+            <p className="border-t border-slate-800 p-3 text-center text-sm text-slate-400">{disabledReason}</p>
+          ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -88,6 +121,7 @@ export function Chat({ view, act }: { view: GameView; act: Act }) {
               전송
             </button>
           </form>
+          )}
         </div>
       )}
     </>
